@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// Nah, perhatiin baris di bawah ini alamatnya berubah ada 'screens/' nya
 import 'screens/splash_screen.dart';
 
 void main() {
