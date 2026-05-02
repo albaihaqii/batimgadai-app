@@ -9,11 +9,20 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
+class _OnboardingData {
+  final String illustration, title, subtitle;
+  const _OnboardingData({
+    required this.illustration,
+    required this.title,
+    required this.subtitle,
+  });
+}
+
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  final PageController _pageController = PageController();
+  final _pageController = PageController();
   int _currentPage = 0;
 
-  static const List<_OnboardingData> _pages = [
+  static const _pages = [
     _OnboardingData(
       illustration: 'assets/images/illustrations/onboarding_1.png',
       title: 'Gadai Aman &\nTerpercaya',
@@ -34,6 +43,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
   ];
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   void _goToLogin() {
     Navigator.pushReplacement(
       context,
@@ -49,9 +64,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _nextPage() {
     if (_currentPage < _pages.length - 1) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 450),
-        curve: Curves.easeInOut,
-      );
+          duration: const Duration(milliseconds: 450), curve: Curves.easeInOut);
     } else {
       _goToLogin();
     }
@@ -59,15 +72,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _prevPage() {
     _pageController.previousPage(
-      duration: const Duration(milliseconds: 450),
-      curve: Curves.easeInOut,
-    );
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
+        duration: const Duration(milliseconds: 450), curve: Curves.easeInOut);
   }
 
   @override
@@ -226,15 +231,4 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       ),
     );
   }
-}
-
-class _OnboardingData {
-  final String illustration;
-  final String title;
-  final String subtitle;
-  const _OnboardingData({
-    required this.illustration,
-    required this.title,
-    required this.subtitle,
-  });
 }

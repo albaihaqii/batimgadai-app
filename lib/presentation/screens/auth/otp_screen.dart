@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../widgets/common/app_button.dart';
+import 'create_pin_screen.dart';
 
 class OtpScreen extends StatefulWidget {
   final String phoneNumber;
@@ -38,8 +39,12 @@ class _OtpScreenState extends State<OtpScreen> {
 
   @override
   void dispose() {
-    for (final c in _controllers) c.dispose();
-    for (final f in _focuses) f.dispose();
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    for (final f in _focuses) {
+      f.dispose();
+    }
     super.dispose();
   }
 
@@ -69,24 +74,33 @@ class _OtpScreenState extends State<OtpScreen> {
   void _verify() {
     if (!_isFilled || _isLoading) return;
     setState(() => _isLoading = true);
-    for (final f in _focuses) f.unfocus();
+    for (final f in _focuses) {
+      f.unfocus();
+    }
     Future.delayed(const Duration(milliseconds: 1800), () {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      _showResult(_otpValue == _correctOtp);
+      if (_otpValue == _correctOtp) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const CreatePinScreen()),
+        );
+      } else {
+        _showError();
+      }
     });
   }
 
   void _onResend() {
     if (_resendState != _ResendState.idle) return;
-    for (final c in _controllers) c.clear();
+    for (final c in _controllers) {
+      c.clear();
+    }
     _focuses[0].requestFocus();
     setState(() => _resendState = _ResendState.sending);
-
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (!mounted) return;
       setState(() => _resendState = _ResendState.sent);
-
       Future.delayed(const Duration(milliseconds: 800), () {
         if (!mounted) return;
         setState(() {
@@ -110,93 +124,71 @@ class _OtpScreenState extends State<OtpScreen> {
     });
   }
 
-  void _showResult(bool success) {
+  void _showError() {
     setState(() => _dialogVisible = true);
     showDialog(
       context: context,
       barrierDismissible: false,
       barrierColor: Colors.black54,
-      builder: (_) => _ResultDialog(
-        success: success,
+      builder: (_) => _ErrorDialog(
         onClose: () {
           Navigator.pop(context);
           setState(() => _dialogVisible = false);
-          if (!success) {
-            for (final c in _controllers) c.clear();
-            _focuses[0].requestFocus();
-            setState(() {});
+          for (final c in _controllers) {
+            c.clear();
           }
+          _focuses[0].requestFocus();
+          setState(() {});
         },
       ),
     );
   }
 
   Widget _buildResendWidget() {
+    const base = TextStyle(
+        fontFamily: 'Poppins', fontSize: 12, color: Color(0xFF9E9E9E));
+    const bold = TextStyle(fontWeight: FontWeight.w600);
+
     switch (_resendState) {
       case _ResendState.idle:
         return GestureDetector(
           onTap: _onResend,
           child: RichText(
-            text: const TextSpan(
-              style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 11,
-                  color: Color(0xFF9E9E9E)),
-              children: [
-                TextSpan(text: 'Belum menerima kode? '),
-                TextSpan(
+            text: TextSpan(style: base, children: [
+              const TextSpan(text: 'Belum menerima kode? '),
+              TextSpan(
                   text: 'Kirim Ulang',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600, color: AppColors.primary),
-                ),
-              ],
-            ),
+                  style: bold.copyWith(color: AppColors.primary)),
+            ]),
           ),
         );
       case _ResendState.sending:
         return RichText(
-          text: const TextSpan(
-            style: TextStyle(
-                fontFamily: 'Poppins', fontSize: 11, color: Color(0xFF9E9E9E)),
-            children: [
-              TextSpan(text: 'Belum menerima kode? '),
-              TextSpan(
+          text: TextSpan(style: base, children: [
+            const TextSpan(text: 'Belum menerima kode? '),
+            TextSpan(
                 text: 'Mengirim...',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600, color: Color(0xFF555555)),
-              ),
-            ],
-          ),
+                style: bold.copyWith(color: const Color(0xFF555555))),
+          ]),
         );
       case _ResendState.sent:
         return RichText(
-          text: const TextSpan(
-            style: TextStyle(
-                fontFamily: 'Poppins', fontSize: 11, color: Color(0xFF9E9E9E)),
-            children: [
-              TextSpan(text: 'Belum menerima kode? '),
-              TextSpan(
+          text: TextSpan(style: base, children: [
+            const TextSpan(text: 'Belum menerima kode? '),
+            TextSpan(
                 text: 'Terkirim!',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600, color: AppColors.primary),
-              ),
-            ],
-          ),
+                style: bold.copyWith(color: AppColors.primary)),
+          ]),
         );
       case _ResendState.countdown:
         return RichText(
-          text: TextSpan(
-            style: const TextStyle(
-                fontFamily: 'Poppins', fontSize: 11, color: Color(0xFF9E9E9E)),
-            children: [
-              const TextSpan(text: 'Belum menerima kode? '),
-              TextSpan(
-                text: 'Kirim Ulang (${_resendCountdown}s)',
-                style: const TextStyle(
-                    fontWeight: FontWeight.w600, color: AppColors.primary),
-              ),
-            ],
-          ),
+          text: TextSpan(style: base, children: [
+            const TextSpan(text: 'Belum menerima kode? '),
+            TextSpan(
+              text: 'Kirim Ulang (${_resendCountdown}s)',
+              style: bold.copyWith(color: AppColors.primary),
+            ),
+          ]),
         );
     }
   }
@@ -245,28 +237,22 @@ class _OtpScreenState extends State<OtpScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              'BATIM',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
-                                height: 1.15,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            Text(
-                              'GADAI',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
-                                height: 1.15,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
+                            Text('BATIM',
+                                style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primary,
+                                    height: 1.15,
+                                    letterSpacing: 0.5)),
+                            Text('GADAI',
+                                style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primary,
+                                    height: 1.15,
+                                    letterSpacing: 0.5)),
                           ],
                         ),
                       ],
@@ -277,33 +263,28 @@ class _OtpScreenState extends State<OtpScreen> {
                 const Text(
                   'Kode Verifikasi Terkirim!',
                   style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                  ),
+                      fontFamily: 'Poppins',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black),
                 ),
                 const SizedBox(height: 10),
                 RichText(
                   text: TextSpan(
                     style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 11,
-                      fontWeight: FontWeight.w400,
-                      color: Color(0xFF9E9E9E),
-                      height: 1.65,
-                    ),
+                        fontFamily: 'Poppins',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        color: Color(0xFF9E9E9E),
+                        height: 1.65),
                     children: [
                       const TextSpan(
                           text: 'Kami telah mengirimkan kode verifikasi ke '),
                       TextSpan(
-                        text: widget.phoneNumber,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                          text: widget.phoneNumber,
+                          style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w500)),
                       const TextSpan(
                           text:
                               ' melalui WhatsApp. Mohon cek dan masukkan kode verifikasi pada kolom berikut.'),
@@ -317,45 +298,45 @@ class _OtpScreenState extends State<OtpScreen> {
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: List.generate(
-                          6,
-                          (i) => _OtpBox(
-                                controller: _controllers[i],
-                                focusNode: _focuses[i],
-                                onChanged: (v) => _onChanged(v, i),
-                                onKeyEvent: (e) => _onKeyEvent(e, i),
-                                disabled: _isLoading,
-                                size: boxSize,
-                              )),
+                        6,
+                        (i) => _OtpBox(
+                          controller: _controllers[i],
+                          focusNode: _focuses[i],
+                          onChanged: (v) => _onChanged(v, i),
+                          onKeyEvent: (e) => _onKeyEvent(e, i),
+                          disabled: _isLoading,
+                          size: boxSize,
+                        ),
+                      ),
                     );
                   },
                 ),
                 const SizedBox(height: 28),
-                _isLoading
-                    ? SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed: null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryLight,
-                            disabledBackgroundColor: AppColors.primaryLight,
-                            elevation: 0,
-                            shadowColor: Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
-                          ),
-                          child: const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2.5, color: AppColors.primary),
-                          ),
-                        ),
-                      )
-                    : AppButton(
-                        label: 'Konfirmasi',
-                        enabled: _isFilled,
-                        onTap: _verify),
+                if (_isLoading)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryLight,
+                        disabledBackgroundColor: AppColors.primaryLight,
+                        elevation: 0,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2.5, color: AppColors.primary),
+                      ),
+                    ),
+                  )
+                else
+                  AppButton(
+                      label: 'Konfirmasi', enabled: _isFilled, onTap: _verify),
                 const SizedBox(height: 20),
                 Center(child: _buildResendWidget()),
               ],
@@ -398,9 +379,8 @@ class _OtpBoxState extends State<_OtpBox> with SingleTickerProviderStateMixin {
     super.initState();
     _ctrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 200));
-    _scale = Tween<double>(begin: 1.0, end: 1.06).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack),
-    );
+    _scale = Tween<double>(begin: 1.0, end: 1.06)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack));
     widget.focusNode.addListener(_onFocus);
   }
 
@@ -420,51 +400,40 @@ class _OtpBoxState extends State<_OtpBox> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     final bool filled = widget.controller.text.isNotEmpty;
     final double radius = widget.size * 0.2;
-    const double strokeWidth = 1.2;
+    const double stroke = 1.2;
 
-    final Gradient borderGradient;
-    if (_focused) {
-      borderGradient = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF2E7D52), Color(0xFF1F5C3A), Color(0xFF174D30)],
-        stops: [0.0, 0.5, 1.0],
-      );
-    } else if (filled) {
-      borderGradient = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFFC8E87A), Color(0xFFB6D96C), Color(0xFF9DC85A)],
-        stops: [0.0, 0.5, 1.0],
-      );
-    } else {
-      borderGradient = const LinearGradient(
-        colors: [Color(0xFFE8E8E8), Color(0xFFDDDDDD)],
-      );
-    }
+    final Gradient borderGradient = _focused
+        ? const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF2E7D52), Color(0xFF1F5C3A), Color(0xFF174D30)])
+        : filled
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                    Color(0xFFC8E87A),
+                    Color(0xFFB6D96C),
+                    Color(0xFF9DC85A)
+                  ])
+            : const LinearGradient(
+                colors: [Color(0xFFE8E8E8), Color(0xFFDDDDDD)]);
 
     final List<BoxShadow> shadows = _focused
         ? [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.13),
-              blurRadius: 8,
-              spreadRadius: 0,
-              offset: const Offset(0, 2),
-            ),
+                color: AppColors.primary.withValues(alpha: 0.13),
+                blurRadius: 8,
+                offset: const Offset(0, 2))
           ]
         : filled
             ? [
                 BoxShadow(
-                  color: AppColors.primaryLight.withValues(alpha: 0.28),
-                  blurRadius: 6,
-                  spreadRadius: 0,
-                  offset: const Offset(0, 1),
-                ),
+                    color: AppColors.primaryLight.withValues(alpha: 0.28),
+                    blurRadius: 6,
+                    offset: const Offset(0, 1))
               ]
             : [];
-
-    final Color bgColor =
-        filled && !_focused ? const Color(0xFFF6FAF0) : Colors.white;
 
     return ScaleTransition(
       scale: _scale,
@@ -479,14 +448,15 @@ class _OtpBoxState extends State<_OtpBox> with SingleTickerProviderStateMixin {
           boxShadow: shadows,
         ),
         child: Padding(
-          padding: const EdgeInsets.all(strokeWidth),
+          padding: const EdgeInsets.all(stroke),
           child: Container(
             decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(radius - strokeWidth),
+              color:
+                  filled && !_focused ? const Color(0xFFF6FAF0) : Colors.white,
+              borderRadius: BorderRadius.circular(radius - stroke),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(radius - strokeWidth),
+              borderRadius: BorderRadius.circular(radius - stroke),
               child: KeyboardListener(
                 focusNode: FocusNode(),
                 onKeyEvent: widget.onKeyEvent,
@@ -501,19 +471,17 @@ class _OtpBoxState extends State<_OtpBox> with SingleTickerProviderStateMixin {
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     onChanged: widget.onChanged,
                     style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: widget.size * 0.38,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
+                        fontFamily: 'Poppins',
+                        fontSize: widget.size * 0.38,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black),
                     decoration: const InputDecoration(
-                      counterText: '',
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
+                        counterText: '',
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.zero),
                   ),
                 ),
               ),
@@ -525,21 +493,19 @@ class _OtpBoxState extends State<_OtpBox> with SingleTickerProviderStateMixin {
   }
 }
 
-class _ResultDialog extends StatefulWidget {
-  final bool success;
+class _ErrorDialog extends StatefulWidget {
   final VoidCallback onClose;
-  const _ResultDialog({required this.success, required this.onClose});
+  const _ErrorDialog({required this.onClose});
 
   @override
-  State<_ResultDialog> createState() => _ResultDialogState();
+  State<_ErrorDialog> createState() => _ErrorDialogState();
 }
 
-class _ResultDialogState extends State<_ResultDialog>
+class _ErrorDialogState extends State<_ErrorDialog>
     with TickerProviderStateMixin {
   late AnimationController _dialogCtrl;
   late AnimationController _rippleCtrl;
   late AnimationController _iconCtrl;
-
   late Animation<double> _dialogScale;
   late Animation<double> _dialogFade;
   late Animation<double> _r1Scale;
@@ -551,46 +517,33 @@ class _ResultDialogState extends State<_ResultDialog>
   @override
   void initState() {
     super.initState();
-
     _dialogCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 400));
     _dialogScale = Tween<double>(begin: 0.75, end: 1.0).animate(
-      CurvedAnimation(parent: _dialogCtrl, curve: Curves.easeOutBack),
-    );
-    _dialogFade = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-          parent: _dialogCtrl,
-          curve: const Interval(0, 0.6, curve: Curves.easeOut)),
-    );
+        CurvedAnimation(parent: _dialogCtrl, curve: Curves.easeOutBack));
+    _dialogFade = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(
+        parent: _dialogCtrl,
+        curve: const Interval(0, 0.6, curve: Curves.easeOut)));
 
     _rippleCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 900));
-    _r1Scale = Tween<double>(begin: 0.6, end: 2.0).animate(
-      CurvedAnimation(
-          parent: _rippleCtrl,
-          curve: const Interval(0.0, 0.65, curve: Curves.easeOut)),
-    );
-    _r1Opacity = Tween<double>(begin: 0.5, end: 0.0).animate(
-      CurvedAnimation(
-          parent: _rippleCtrl,
-          curve: const Interval(0.0, 0.65, curve: Curves.easeOut)),
-    );
-    _r2Scale = Tween<double>(begin: 0.6, end: 2.0).animate(
-      CurvedAnimation(
-          parent: _rippleCtrl,
-          curve: const Interval(0.2, 0.85, curve: Curves.easeOut)),
-    );
-    _r2Opacity = Tween<double>(begin: 0.35, end: 0.0).animate(
-      CurvedAnimation(
-          parent: _rippleCtrl,
-          curve: const Interval(0.2, 0.85, curve: Curves.easeOut)),
-    );
+    _r1Scale = Tween<double>(begin: 0.6, end: 2.0).animate(CurvedAnimation(
+        parent: _rippleCtrl,
+        curve: const Interval(0.0, 0.65, curve: Curves.easeOut)));
+    _r1Opacity = Tween<double>(begin: 0.5, end: 0.0).animate(CurvedAnimation(
+        parent: _rippleCtrl,
+        curve: const Interval(0.0, 0.65, curve: Curves.easeOut)));
+    _r2Scale = Tween<double>(begin: 0.6, end: 2.0).animate(CurvedAnimation(
+        parent: _rippleCtrl,
+        curve: const Interval(0.2, 0.85, curve: Curves.easeOut)));
+    _r2Opacity = Tween<double>(begin: 0.35, end: 0.0).animate(CurvedAnimation(
+        parent: _rippleCtrl,
+        curve: const Interval(0.2, 0.85, curve: Curves.easeOut)));
 
     _iconCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 500));
-    _iconScale = Tween<double>(begin: 0.4, end: 1.0).animate(
-      CurvedAnimation(parent: _iconCtrl, curve: Curves.easeOutBack),
-    );
+    _iconScale = Tween<double>(begin: 0.4, end: 1.0)
+        .animate(CurvedAnimation(parent: _iconCtrl, curve: Curves.easeOutBack));
 
     _dialogCtrl.forward();
     Future.delayed(const Duration(milliseconds: 200), () {
@@ -608,17 +561,25 @@ class _ResultDialogState extends State<_ResultDialog>
     super.dispose();
   }
 
+  Widget _rippleCircle(Animation<double> scale, Animation<double> opacity) {
+    return AnimatedBuilder(
+      animation: _rippleCtrl,
+      builder: (_, __) => Transform.scale(
+        scale: scale.value,
+        child: Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFFD32F2F).withValues(alpha: opacity.value),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final bool ok = widget.success;
-    final Color circleColor =
-        ok ? AppColors.primaryLight : const Color(0xFFFFEBEE);
-    final Color iconColor = ok ? AppColors.primary : const Color(0xFFD32F2F);
-    final Color rippleColor =
-        ok ? AppColors.primaryLight : const Color(0xFFD32F2F);
-    final Color btnBg = ok ? AppColors.primaryLight : const Color(0xFFFFEBEE);
-    final Color btnFg = ok ? AppColors.primary : const Color(0xFFD32F2F);
-
     return FadeTransition(
       opacity: _dialogFade,
       child: Dialog(
@@ -637,74 +598,40 @@ class _ResultDialogState extends State<_ResultDialog>
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      AnimatedBuilder(
-                        animation: _rippleCtrl,
-                        builder: (_, __) => Transform.scale(
-                          scale: _r2Scale.value,
-                          child: Container(
-                            width: 72,
-                            height: 72,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: rippleColor.withValues(
-                                  alpha: _r2Opacity.value),
-                            ),
-                          ),
-                        ),
-                      ),
-                      AnimatedBuilder(
-                        animation: _rippleCtrl,
-                        builder: (_, __) => Transform.scale(
-                          scale: _r1Scale.value,
-                          child: Container(
-                            width: 72,
-                            height: 72,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: rippleColor.withValues(
-                                  alpha: _r1Opacity.value),
-                            ),
-                          ),
-                        ),
-                      ),
+                      _rippleCircle(_r2Scale, _r2Opacity),
+                      _rippleCircle(_r1Scale, _r1Opacity),
                       ScaleTransition(
                         scale: _iconScale,
                         child: Container(
                           width: 72,
                           height: 72,
-                          decoration: BoxDecoration(
-                              color: circleColor, shape: BoxShape.circle),
-                          child: Icon(
-                              ok ? Icons.check_rounded : Icons.close_rounded,
-                              color: iconColor,
-                              size: 36),
+                          decoration: const BoxDecoration(
+                              color: Color(0xFFFFEBEE), shape: BoxShape.circle),
+                          child: const Icon(Icons.close_rounded,
+                              color: Color(0xFFD32F2F), size: 36),
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 18),
-                Text(
-                  ok ? 'Verifikasi Berhasil' : 'Kode Tidak Valid',
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                  ),
+                const Text(
+                  'Kode Tidak Valid',
+                  style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  ok
-                      ? 'Kode OTP yang Anda masukkan sudah benar. Lanjutkan untuk membuat PIN akun Anda.'
-                      : 'Kode OTP yang Anda masukkan salah atau telah kedaluwarsa. Silakan coba lagi.',
+                const Text(
+                  'Kode OTP yang Anda masukkan salah atau telah kedaluwarsa. Silakan coba lagi.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    color: Color(0xFF9E9E9E),
-                    height: 1.65,
-                  ),
+                  style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12,
+                      color: Color(0xFF9E9E9E),
+                      height: 1.65),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
@@ -713,20 +640,18 @@ class _ResultDialogState extends State<_ResultDialog>
                   child: ElevatedButton(
                     onPressed: widget.onClose,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: btnBg,
-                      foregroundColor: btnFg,
+                      backgroundColor: const Color(0xFFFFEBEE),
+                      foregroundColor: const Color(0xFFD32F2F),
                       elevation: 0,
                       shadowColor: Colors.transparent,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: Text(
-                      ok ? 'Lanjutkan' : 'Coba Lagi',
-                      style: const TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600),
-                    ),
+                    child: const Text('Coba Lagi',
+                        style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],

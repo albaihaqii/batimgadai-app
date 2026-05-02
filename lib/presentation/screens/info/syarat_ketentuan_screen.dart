@@ -232,21 +232,18 @@ class SyaratKetentuanScreen extends StatelessWidget {
           centerTitle: true,
           leading: IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: SvgPicture.asset(
-              'assets/icons/arrow-left.svg',
-              width: 24,
-              height: 24,
-              colorFilter: const ColorFilter.mode(_primary, BlendMode.srcIn),
-            ),
+            icon: SvgPicture.asset('assets/icons/arrow-left.svg',
+                width: 24,
+                height: 24,
+                colorFilter: const ColorFilter.mode(_primary, BlendMode.srcIn)),
           ),
           title: const Text(
             'Syarat & Ketentuan',
             style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: _primary,
-            ),
+                fontFamily: 'Poppins',
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: _primary),
           ),
         ),
         body: ListView.builder(
@@ -273,12 +270,11 @@ class _SectionWidget extends StatelessWidget {
           child: Text(
             section.label,
             style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF898A8D),
-              letterSpacing: 0.3,
-            ),
+                fontFamily: 'Poppins',
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF898A8D),
+                letterSpacing: 0.3),
           ),
         ),
         Container(
@@ -295,12 +291,11 @@ class _SectionWidget extends StatelessWidget {
                   _ItemTile(section.items[i]),
                   if (i < section.items.length - 1)
                     const Divider(
-                      height: 1,
-                      thickness: 0.5,
-                      indent: 14,
-                      endIndent: 14,
-                      color: Color(0xFFE0E0E0),
-                    ),
+                        height: 1,
+                        thickness: 0.5,
+                        indent: 14,
+                        endIndent: 14,
+                        color: Color(0xFFE0E0E0)),
                 ],
               );
             }),
@@ -338,9 +333,8 @@ class _ItemTile extends StatelessWidget {
                 height: 40,
                 margin: const EdgeInsets.only(top: 1),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF4F8EF),
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                    color: const Color(0xFFF4F8EF),
+                    borderRadius: BorderRadius.circular(10)),
                 padding: const EdgeInsets.all(10),
                 child: SvgPicture.asset('assets/icons/${item.icon}.svg'),
               ),
@@ -349,26 +343,20 @@ class _ItemTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      item.title,
-                      style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF000000),
-                      ),
-                    ),
+                    Text(item.title,
+                        style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF000000))),
                     const SizedBox(height: 3),
-                    Text(
-                      item.subtitle,
-                      style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        color: Color(0xFFA0A0A0),
-                        height: 1.5,
-                      ),
-                    ),
+                    Text(item.subtitle,
+                        style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            color: Color(0xFFA0A0A0),
+                            height: 1.5)),
                   ],
                 ),
               ),
@@ -394,11 +382,11 @@ class _DetailSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     int counter = 0;
     const ts = TextStyle(
-      fontFamily: 'Poppins',
-      fontSize: 12,
-      color: Color(0xFF000000),
-      height: 1.75,
-    );
+        fontFamily: 'Poppins',
+        fontSize: 12,
+        color: Color(0xFF000000),
+        height: 1.75);
+
     return GestureDetector(
       onTap: () => Navigator.pop(context),
       behavior: HitTestBehavior.opaque,
@@ -409,9 +397,9 @@ class _DetailSheet extends StatelessWidget {
             onTap: () {},
             child: Container(
               decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
+                  color: Colors.white,
+                  borderRadius:
+                      BorderRadius.vertical(top: Radius.circular(20))),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -422,9 +410,8 @@ class _DetailSheet extends StatelessWidget {
                       width: 36,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFDDDDDD),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
+                          color: const Color(0xFFDDDDDD),
+                          borderRadius: BorderRadius.circular(2)),
                     ),
                   ),
                   Padding(
@@ -435,23 +422,19 @@ class _DetailSheet extends StatelessWidget {
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF4F8EF),
-                            borderRadius: BorderRadius.circular(9),
-                          ),
+                              color: const Color(0xFFF4F8EF),
+                              borderRadius: BorderRadius.circular(9)),
                           padding: const EdgeInsets.all(9),
                           child:
                               SvgPicture.asset('assets/icons/${item.icon}.svg'),
                         ),
                         const SizedBox(width: 10),
-                        Text(
-                          item.title,
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF000000),
-                          ),
-                        ),
+                        Text(item.title,
+                            style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF000000))),
                       ],
                     ),
                   ),
