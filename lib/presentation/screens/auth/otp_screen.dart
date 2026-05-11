@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/api_service.dart';
 import '../../widgets/common/app_button.dart';
+import '../../widgets/common/app_logo.dart';
 import 'create_pin_screen.dart';
 
 class OtpScreen extends StatefulWidget {
   final String phoneNumber;
-  const OtpScreen({super.key, required this.phoneNumber});
+  final String generatedOtp;
+  const OtpScreen({
+    super.key,
+    required this.phoneNumber,
+    required this.generatedOtp,
+  });
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -15,10 +22,10 @@ class OtpScreen extends StatefulWidget {
 enum _ResendState { idle, sending, sent, countdown }
 
 class _OtpScreenState extends State<OtpScreen> {
-  final _controllers = List.generate(6, (_) => TextEditingController());
-  final _focuses = List.generate(6, (_) => FocusNode());
+  final List<TextEditingController> _controllers =
+      List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> _focuses = List.generate(6, (_) => FocusNode());
 
-  static const _correctOtp = '123456';
   bool _isLoading = false;
   bool _dialogVisible = false;
   _ResendState _resendState = _ResendState.idle;
@@ -39,21 +46,15 @@ class _OtpScreenState extends State<OtpScreen> {
 
   @override
   void dispose() {
-    for (final c in _controllers) {
-      c.dispose();
-    }
-    for (final f in _focuses) {
-      f.dispose();
-    }
+    for (final c in _controllers) c.dispose();
+    for (final f in _focuses) f.dispose();
     super.dispose();
   }
 
   void _onChanged(String val, int i) {
-    if (val.length == 1 && i < 5) {
+    if (val.length == 1 && i < 5)
       _focuses[i + 1].requestFocus();
-    } else if (val.isEmpty && i > 0) {
-      _focuses[i - 1].requestFocus();
-    }
+    else if (val.isEmpty && i > 0) _focuses[i - 1].requestFocus();
     setState(() {});
     if (_isFilled && !_isLoading) {
       Future.delayed(const Duration(milliseconds: 150), _verify);
@@ -74,13 +75,11 @@ class _OtpScreenState extends State<OtpScreen> {
   void _verify() {
     if (!_isFilled || _isLoading) return;
     setState(() => _isLoading = true);
-    for (final f in _focuses) {
-      f.unfocus();
-    }
+    for (final f in _focuses) f.unfocus();
     Future.delayed(const Duration(milliseconds: 1800), () {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      if (_otpValue == _correctOtp) {
+      if (_otpValue == widget.generatedOtp) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const CreatePinScreen()),
@@ -91,24 +90,24 @@ class _OtpScreenState extends State<OtpScreen> {
     });
   }
 
-  void _onResend() {
+  Future<void> _onResend() async {
     if (_resendState != _ResendState.idle) return;
-    for (final c in _controllers) {
-      c.clear();
-    }
+    for (final c in _controllers) c.clear();
     _focuses[0].requestFocus();
     setState(() => _resendState = _ResendState.sending);
-    Future.delayed(const Duration(milliseconds: 1500), () {
+
+    // Kirim OTP baru ke WA
+    await ApiService.kirimOtp(widget.phoneNumber, widget.generatedOtp);
+
+    if (!mounted) return;
+    setState(() => _resendState = _ResendState.sent);
+    Future.delayed(const Duration(milliseconds: 800), () {
       if (!mounted) return;
-      setState(() => _resendState = _ResendState.sent);
-      Future.delayed(const Duration(milliseconds: 800), () {
-        if (!mounted) return;
-        setState(() {
-          _resendState = _ResendState.countdown;
-          _resendCountdown = 30;
-        });
-        _tickCountdown();
+      setState(() {
+        _resendState = _ResendState.countdown;
+        _resendCountdown = 30;
       });
+      _tickCountdown();
     });
   }
 
@@ -130,13 +129,11 @@ class _OtpScreenState extends State<OtpScreen> {
       context: context,
       barrierDismissible: false,
       barrierColor: Colors.black54,
-      builder: (_) => _ErrorDialog(
+      builder: (_) => _OtpErrorDialog(
         onClose: () {
           Navigator.pop(context);
           setState(() => _dialogVisible = false);
-          for (final c in _controllers) {
-            c.clear();
-          }
+          for (final c in _controllers) c.clear();
           _focuses[0].requestFocus();
           setState(() {});
         },
@@ -147,7 +144,6 @@ class _OtpScreenState extends State<OtpScreen> {
   Widget _buildResendWidget() {
     const base = TextStyle(
         fontFamily: 'Poppins', fontSize: 12, color: Color(0xFF9E9E9E));
-    const bold = TextStyle(fontWeight: FontWeight.w600);
 
     switch (_resendState) {
       case _ResendState.idle:
@@ -158,7 +154,8 @@ class _OtpScreenState extends State<OtpScreen> {
               const TextSpan(text: 'Belum menerima kode? '),
               TextSpan(
                   text: 'Kirim Ulang',
-                  style: bold.copyWith(color: AppColors.primary)),
+                  style: const TextStyle(fontWeight: FontWeight.w600)
+                      .copyWith(color: AppColors.primary)),
             ]),
           ),
         );
@@ -166,9 +163,10 @@ class _OtpScreenState extends State<OtpScreen> {
         return RichText(
           text: TextSpan(style: base, children: [
             const TextSpan(text: 'Belum menerima kode? '),
-            TextSpan(
+            const TextSpan(
                 text: 'Mengirim...',
-                style: bold.copyWith(color: const Color(0xFF555555))),
+                style: TextStyle(
+                    fontWeight: FontWeight.w600, color: Color(0xFF555555))),
           ]),
         );
       case _ResendState.sent:
@@ -177,7 +175,8 @@ class _OtpScreenState extends State<OtpScreen> {
             const TextSpan(text: 'Belum menerima kode? '),
             TextSpan(
                 text: 'Terkirim!',
-                style: bold.copyWith(color: AppColors.primary)),
+                style: const TextStyle(fontWeight: FontWeight.w600)
+                    .copyWith(color: AppColors.primary)),
           ]),
         );
       case _ResendState.countdown:
@@ -185,9 +184,9 @@ class _OtpScreenState extends State<OtpScreen> {
           text: TextSpan(style: base, children: [
             const TextSpan(text: 'Belum menerima kode? '),
             TextSpan(
-              text: 'Kirim Ulang (${_resendCountdown}s)',
-              style: bold.copyWith(color: AppColors.primary),
-            ),
+                text: 'Kirim Ulang (${_resendCountdown}s)',
+                style: const TextStyle(fontWeight: FontWeight.w600)
+                    .copyWith(color: AppColors.primary)),
           ]),
         );
     }
@@ -227,36 +226,7 @@ class _OtpScreenState extends State<OtpScreen> {
                       ),
                     ),
                     const Spacer(),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Image.asset('assets/images/logo.png',
-                            height: 34, width: 34, fit: BoxFit.contain),
-                        const SizedBox(width: 8),
-                        const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('BATIM',
-                                style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.primary,
-                                    height: 1.15,
-                                    letterSpacing: 0.5)),
-                            Text('GADAI',
-                                style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.primary,
-                                    height: 1.15,
-                                    letterSpacing: 0.5)),
-                          ],
-                        ),
-                      ],
-                    ),
+                    const AppLogo(),
                   ],
                 ),
                 const SizedBox(height: 36),
@@ -274,26 +244,25 @@ class _OtpScreenState extends State<OtpScreen> {
                     style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 12,
-                        fontWeight: FontWeight.w400,
                         color: Color(0xFF9E9E9E),
                         height: 1.65),
                     children: [
                       const TextSpan(
-                          text: 'Kami telah mengirimkan kode verifikasi ke '),
+                          text: 'Kami telah mengirim kode verifikasi ke '),
                       TextSpan(
                           text: widget.phoneNumber,
                           style: const TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w500)),
+                              color: Color(0xFF1F5C3A),
+                              fontWeight: FontWeight.w600)),
                       const TextSpan(
                           text:
-                              ' melalui WhatsApp. Mohon cek dan masukkan kode verifikasi pada kolom berikut.'),
+                              ' melalui WhatsApp. Mohon cek dan masukkan kembali kode verifikasi pada kolom.'),
                     ],
                   ),
                 ),
                 const SizedBox(height: 32),
                 LayoutBuilder(
-                  builder: (context, constraints) {
+                  builder: (_, constraints) {
                     final double boxSize = (constraints.maxWidth - 5 * 10) / 6;
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -322,7 +291,6 @@ class _OtpScreenState extends State<OtpScreen> {
                         backgroundColor: AppColors.primaryLight,
                         disabledBackgroundColor: AppColors.primaryLight,
                         elevation: 0,
-                        shadowColor: Colors.transparent,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14)),
                       ),
@@ -370,8 +338,8 @@ class _OtpBox extends StatefulWidget {
 }
 
 class _OtpBoxState extends State<_OtpBox> with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  late Animation<double> _scale;
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
   bool _focused = false;
 
   @override
@@ -381,17 +349,17 @@ class _OtpBoxState extends State<_OtpBox> with SingleTickerProviderStateMixin {
         vsync: this, duration: const Duration(milliseconds: 200));
     _scale = Tween<double>(begin: 1.0, end: 1.06)
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack));
-    widget.focusNode.addListener(_onFocus);
+    widget.focusNode.addListener(_onFocusChange);
   }
 
-  void _onFocus() {
+  void _onFocusChange() {
     setState(() => _focused = widget.focusNode.hasFocus);
     widget.focusNode.hasFocus ? _ctrl.forward() : _ctrl.reverse();
   }
 
   @override
   void dispose() {
-    widget.focusNode.removeListener(_onFocus);
+    widget.focusNode.removeListener(_onFocusChange);
     _ctrl.dispose();
     super.dispose();
   }
@@ -403,49 +371,27 @@ class _OtpBoxState extends State<_OtpBox> with SingleTickerProviderStateMixin {
     const double stroke = 1.2;
 
     final Gradient borderGradient = _focused
-        ? const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF2E7D52), Color(0xFF1F5C3A), Color(0xFF174D30)])
+        ? const LinearGradient(colors: [
+            Color(0xFF2E7D52),
+            Color(0xFF1F5C3A),
+          ])
         : filled
-            ? const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                    Color(0xFFC8E87A),
-                    Color(0xFFB6D96C),
-                    Color(0xFF9DC85A)
-                  ])
+            ? const LinearGradient(colors: [
+                Color(0xFFC8E87A),
+                Color(0xFFB6D96C),
+              ])
             : const LinearGradient(
                 colors: [Color(0xFFE8E8E8), Color(0xFFDDDDDD)]);
-
-    final List<BoxShadow> shadows = _focused
-        ? [
-            BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.13),
-                blurRadius: 8,
-                offset: const Offset(0, 2))
-          ]
-        : filled
-            ? [
-                BoxShadow(
-                    color: AppColors.primaryLight.withValues(alpha: 0.28),
-                    blurRadius: 6,
-                    offset: const Offset(0, 1))
-              ]
-            : [];
 
     return ScaleTransition(
       scale: _scale,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
-        curve: Curves.easeInOutCubic,
         width: widget.size,
         height: widget.size,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(radius),
           gradient: borderGradient,
-          boxShadow: shadows,
         ),
         child: Padding(
           padding: const EdgeInsets.all(stroke),
@@ -476,12 +422,13 @@ class _OtpBoxState extends State<_OtpBox> with SingleTickerProviderStateMixin {
                         fontWeight: FontWeight.w600,
                         color: Colors.black),
                     decoration: const InputDecoration(
-                        counterText: '',
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        disabledBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.zero),
+                      counterText: '',
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
                   ),
                 ),
               ),
@@ -493,26 +440,26 @@ class _OtpBoxState extends State<_OtpBox> with SingleTickerProviderStateMixin {
   }
 }
 
-class _ErrorDialog extends StatefulWidget {
+class _OtpErrorDialog extends StatefulWidget {
   final VoidCallback onClose;
-  const _ErrorDialog({required this.onClose});
+  const _OtpErrorDialog({required this.onClose});
 
   @override
-  State<_ErrorDialog> createState() => _ErrorDialogState();
+  State<_OtpErrorDialog> createState() => _OtpErrorDialogState();
 }
 
-class _ErrorDialogState extends State<_ErrorDialog>
+class _OtpErrorDialogState extends State<_OtpErrorDialog>
     with TickerProviderStateMixin {
-  late AnimationController _dialogCtrl;
-  late AnimationController _rippleCtrl;
-  late AnimationController _iconCtrl;
-  late Animation<double> _dialogScale;
-  late Animation<double> _dialogFade;
-  late Animation<double> _r1Scale;
-  late Animation<double> _r1Opacity;
-  late Animation<double> _r2Scale;
-  late Animation<double> _r2Opacity;
-  late Animation<double> _iconScale;
+  late final AnimationController _dialogCtrl;
+  late final AnimationController _rippleCtrl;
+  late final AnimationController _iconCtrl;
+  late final Animation<double> _dialogScale;
+  late final Animation<double> _dialogFade;
+  late final Animation<double> _r1Scale;
+  late final Animation<double> _r1Opacity;
+  late final Animation<double> _r2Scale;
+  late final Animation<double> _r2Opacity;
+  late final Animation<double> _iconScale;
 
   @override
   void initState() {
@@ -561,7 +508,7 @@ class _ErrorDialogState extends State<_ErrorDialog>
     super.dispose();
   }
 
-  Widget _rippleCircle(Animation<double> scale, Animation<double> opacity) {
+  Widget _buildRipple(Animation<double> scale, Animation<double> opacity) {
     return AnimatedBuilder(
       animation: _rippleCtrl,
       builder: (_, __) => Transform.scale(
@@ -598,8 +545,8 @@ class _ErrorDialogState extends State<_ErrorDialog>
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      _rippleCircle(_r2Scale, _r2Opacity),
-                      _rippleCircle(_r1Scale, _r1Opacity),
+                      _buildRipple(_r2Scale, _r2Opacity),
+                      _buildRipple(_r1Scale, _r1Opacity),
                       ScaleTransition(
                         scale: _iconScale,
                         child: Container(
@@ -625,7 +572,7 @@ class _ErrorDialogState extends State<_ErrorDialog>
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Kode OTP yang Anda masukkan salah atau telah kedaluwarsa. Silakan coba lagi.',
+                  'Kode OTP salah atau kedaluwarsa. Silakan coba lagi.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontFamily: 'Poppins',
@@ -643,15 +590,16 @@ class _ErrorDialogState extends State<_ErrorDialog>
                       backgroundColor: const Color(0xFFFFEBEE),
                       foregroundColor: const Color(0xFFD32F2F),
                       elevation: 0,
-                      shadowColor: Colors.transparent,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Coba Lagi',
-                        style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600)),
+                    child: const Text(
+                      'Coba Lagi',
+                      style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ),
               ],
