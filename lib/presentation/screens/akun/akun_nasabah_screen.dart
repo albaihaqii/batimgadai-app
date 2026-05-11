@@ -1,24 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../verification/verify_account_screen.dart';
+import '../../../core/services/storage_service.dart';
+import '../../../providers/nasabah_provider.dart';
 import '../auth/phone_input_screen.dart';
 import '../info/info_gadai_screen.dart';
 import '../info/cara_gadai_screen.dart';
 import '../info/faq_screen.dart';
 import '../info/hubungi_kami_screen.dart';
 import '../info/tentang_aplikasi_screen.dart';
+import '../pinjaman/riwayat_pembayaran_screen.dart';
+import 'booking_kunjungan_screen.dart';
+import 'data_pribadi_screen.dart';
 import 'ganti_pin_lama_screen.dart';
 
-class AkunScreen extends StatefulWidget {
-  const AkunScreen({super.key});
+class AkunNasabahScreen extends ConsumerStatefulWidget {
+  const AkunNasabahScreen({super.key});
 
   @override
-  State<AkunScreen> createState() => _AkunScreenState();
+  ConsumerState<AkunNasabahScreen> createState() => AkunNasabahScreenState();
 }
 
-class _AkunScreenState extends State<AkunScreen> {
+class AkunNasabahScreenState extends ConsumerState<AkunNasabahScreen> {
   bool _dialogVisible = false;
+  final ScrollController _scrollController = ScrollController();
+
+  static const _menuProfil = [
+    _MenuItem('assets/icons/user-bold.svg', 'Data Pribadi'),
+  ];
+
+  static const _menuTransaksi = [
+    _MenuItem('assets/icons/wallet-bold.svg', 'Pinjaman Aktif Saya'),
+    _MenuItem('assets/icons/restart.svg', 'Riwayat Pembayaran'),
+    _MenuItem('assets/icons/calendar-bold.svg', 'Booking Kunjungan Saya'),
+  ];
 
   static const _menuKeamanan = [
     _MenuItem('assets/icons/lock-keyhole.svg', 'Ganti PIN'),
@@ -32,22 +48,64 @@ class _AkunScreenState extends State<AkunScreen> {
     _MenuItem('assets/icons/restart.svg', 'Tentang Aplikasi'),
   ];
 
-  void _onMenuTap(String label) {
-    final Map<String, Widget Function()> routes = {
-      'Ganti PIN': () => const GantiPinLamaScreen(),
-      'Info Gadai': () => const InfoGadaiScreen(),
-      'Cara Gadai': () => const CaraGadaiScreen(),
-      'FAQ': () => const FaqScreen(),
-      'Hubungi Kami': () => const HubungiKamiScreen(),
-      'Tentang Aplikasi': () => const TentangAplikasiScreen(),
-    };
-    final builder = routes[label];
-    if (builder != null) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => builder()));
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void resetScroll() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(0,
+          duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
     }
   }
 
-  void _showLogoutDialog() {
+  void _onMenuTap(BuildContext context, String label) {
+    switch (label) {
+      case 'Data Pribadi':
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const DataPribadiScreen()));
+        break;
+      case 'Pinjaman Aktif Saya':
+        Navigator.popUntil(context, (route) => route.isFirst);
+        break;
+      case 'Riwayat Pembayaran':
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const RiwayatPembayaranScreen()));
+        break;
+      case 'Booking Kunjungan Saya':
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const BookingKunjunganScreen()));
+        break;
+      case 'Ganti PIN':
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const GantiPinLamaScreen()));
+        break;
+      case 'Info Gadai':
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const InfoGadaiScreen()));
+        break;
+      case 'Cara Gadai':
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const CaraGadaiScreen()));
+        break;
+      case 'FAQ':
+        Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const FaqScreen()));
+        break;
+      case 'Hubungi Kami':
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const HubungiKamiScreen()));
+        break;
+      case 'Tentang Aplikasi':
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const TentangAplikasiScreen()));
+        break;
+    }
+  }
+
+  void _showLogout() {
     setState(() => _dialogVisible = true);
     showDialog(
       context: context,
@@ -58,9 +116,12 @@ class _AkunScreenState extends State<AkunScreen> {
           Navigator.pop(context);
           setState(() => _dialogVisible = false);
         },
-        onYa: () {
+        onYa: () async {
           Navigator.pop(context);
-          setState(() => _dialogVisible = false);
+          await StorageService.setIsNasabah(false);
+          await StorageService.saveNasabah({});
+          ref.read(nasabahProvider.notifier).clear();
+          if (!context.mounted) return;
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const PhoneInputScreen()),
@@ -75,31 +136,40 @@ class _AkunScreenState extends State<AkunScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final nasabah = ref.watch(nasabahProvider);
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        statusBarColor:
-            _dialogVisible ? Colors.transparent : const Color(0xFFB6D96C),
+        statusBarColor: const Color(0xFFB6D96C),
         statusBarIconBrightness:
             _dialogVisible ? Brightness.light : Brightness.dark,
       ),
       child: Scaffold(
         backgroundColor: Colors.white,
         body: CustomScrollView(
+          controller: _scrollController,
           slivers: [
-            SliverToBoxAdapter(child: _buildHeader(context)),
+            SliverToBoxAdapter(child: _buildHeader(context, nasabah)),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _sectionLabel('PROFIL'),
+                    const SizedBox(height: 8),
+                    _buildMenuGroup(context, _menuProfil),
+                    const SizedBox(height: 16),
+                    _sectionLabel('TRANSAKSI'),
+                    const SizedBox(height: 8),
+                    _buildMenuGroup(context, _menuTransaksi),
+                    const SizedBox(height: 16),
                     _sectionLabel('KEAMANAN'),
                     const SizedBox(height: 8),
-                    _buildMenuGroup(_menuKeamanan),
+                    _buildMenuGroup(context, _menuKeamanan),
                     const SizedBox(height: 16),
                     _sectionLabel('INFORMASI'),
                     const SizedBox(height: 8),
-                    _buildMenuGroup(_menuInformasi),
+                    _buildMenuGroup(context, _menuInformasi),
                     const SizedBox(height: 16),
                     _buildLogoutButton(),
                     const SizedBox(height: 16),
@@ -113,48 +183,7 @@ class _AkunScreenState extends State<AkunScreen> {
     );
   }
 
-  Widget _sectionLabel(String label) {
-    return Text(label,
-        style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF898A8D),
-            letterSpacing: 0.3));
-  }
-
-  Widget _buildMenuGroup(List<_MenuItem> items) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: List.generate(
-            items.length,
-            (i) => Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _MenuTile(
-                      item: items[i],
-                      onTap: () => _onMenuTap(items[i].label),
-                    ),
-                    if (i < items.length - 1)
-                      const Divider(
-                          height: 1,
-                          thickness: 0.5,
-                          indent: 14,
-                          endIndent: 14,
-                          color: Color(0xFFE0E0E0)),
-                  ],
-                )),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, NasabahState nasabah) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -179,7 +208,6 @@ class _AkunScreenState extends State<AkunScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Avatar
                 Container(
                   width: 84,
                   height: 84,
@@ -202,16 +230,18 @@ class _AkunScreenState extends State<AkunScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text('Pengunjung',
-                    style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black)),
+                Text(
+                  nasabah.nama ?? 'Nasabah',
+                  style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black),
+                ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Belum Terverifikasi sebagai Nasabah',
-                  style: TextStyle(
+                Text(
+                  nasabah.noCif ?? '',
+                  style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 12,
                       color: Color(0xFF555555)),
@@ -219,28 +249,43 @@ class _AkunScreenState extends State<AkunScreen> {
                 const SizedBox(height: 8),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                       color: const Color(0xFFD9EDB3),
                       borderRadius: BorderRadius.circular(20)),
-                  child: const Text('Belum Terverifikasi',
-                      style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF1F5C3A))),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SvgPicture.asset(
+                        'assets/icons/verified.svg',
+                        width: 13,
+                        height: 13,
+                        colorFilter: const ColorFilter.mode(
+                            Color(0xFF1F5C3A), BlendMode.srcIn),
+                        errorBuilder: (_, __, ___) => const Icon(Icons.verified,
+                            size: 13, color: Color(0xFF1F5C3A)),
+                      ),
+                      const SizedBox(width: 5),
+                      const Text('Nasabah Terverifikasi',
+                          style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF1F5C3A))),
+                    ],
+                  ),
                 ),
               ]),
             ),
           ),
         ),
+        // Banner Pinjaman Aktif
         Positioned(
           left: 16,
           right: 16,
           bottom: -26,
           child: GestureDetector(
-            onTap: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const VerifyAccountScreen())),
+            onTap: () => Navigator.popUntil(context, (r) => r.isFirst),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
@@ -248,13 +293,13 @@ class _AkunScreenState extends State<AkunScreen> {
                   borderRadius: BorderRadius.circular(14)),
               child: Row(children: [
                 SvgPicture.asset(
-                  'assets/icons/verified.svg',
+                  'assets/icons/wallet-linier.svg',
                   width: 24,
                   height: 24,
                   colorFilter:
                       const ColorFilter.mode(Colors.white, BlendMode.srcIn),
                   errorBuilder: (_, __, ___) => const Icon(
-                      Icons.verified_outlined,
+                      Icons.account_balance_wallet_outlined,
                       size: 24,
                       color: Colors.white),
                 ),
@@ -263,23 +308,25 @@ class _AkunScreenState extends State<AkunScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Verifikasi sebagai Nasabah!',
-                          style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white)),
+                      Text(
+                        '2 Pinjaman Aktif',
+                        style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white),
+                      ),
                       SizedBox(height: 2),
                       Text(
-                          'Buka semua fitur aplikasi untuk pengalaman gadai terbaik',
-                          style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 10,
-                              color: Colors.white70)),
+                        'Pantau semua pinjaman Anda secara real-time.',
+                        style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 10,
+                            color: Colors.white70),
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
                 const Icon(Icons.chevron_right, color: Colors.white, size: 20),
               ]),
             ),
@@ -289,12 +336,53 @@ class _AkunScreenState extends State<AkunScreen> {
     );
   }
 
+  Widget _sectionLabel(String label) {
+    return Text(label,
+        style: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF898A8D),
+            letterSpacing: 0.3));
+  }
+
+  Widget _buildMenuGroup(BuildContext context, List<_MenuItem> items) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(
+            items.length,
+            (i) => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _MenuTile(
+                      item: items[i],
+                      onTap: () => _onMenuTap(context, items[i].label),
+                    ),
+                    if (i < items.length - 1)
+                      const Divider(
+                          height: 1,
+                          thickness: 0.5,
+                          indent: 14,
+                          endIndent: 14,
+                          color: Color(0xFFE0E0E0)),
+                  ],
+                )),
+      ),
+    );
+  }
+
   Widget _buildLogoutButton() {
     return SizedBox(
       width: double.infinity,
       height: 52,
       child: OutlinedButton(
-        onPressed: _showLogoutDialog,
+        onPressed: _showLogout,
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: Color(0xFFE0E0E0), width: 1.5),
           shape:
@@ -336,8 +424,8 @@ class _MenuItem {
 
 class _MenuTile extends StatelessWidget {
   final _MenuItem item;
-  final VoidCallback? onTap;
-  const _MenuTile({required this.item, this.onTap});
+  final VoidCallback onTap;
+  const _MenuTile({required this.item, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
