@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import '../../config/app_constants.dart';
+import '../../data/models/gadai_model.dart';
+import '../../data/models/cabang_model.dart';
 
 class ApiService {
   ApiService._();
@@ -14,7 +16,7 @@ class ApiService {
     },
   ));
 
-  // Kirim OTP via Fonnte ke WhatsApp
+  // ── OTP ──────────────────────────────────────────────────────────────────
   static Future<bool> kirimOtp(String phone, String otp) async {
     try {
       final res = await Dio().post(
@@ -34,7 +36,7 @@ class ApiService {
     }
   }
 
-  // Verifikasi nasabah via No KTP + No CIF
+  // ── Auth ─────────────────────────────────────────────────────────────────
   static Future<Map<String, dynamic>> verifyNasabah({
     required String noKtp,
     required String noCif,
@@ -51,86 +53,80 @@ class ApiService {
     }
   }
 
-  // Ambil list cabang
-  static Future<List<dynamic>> getCabang() async {
-    try {
-      final res = await _dio.get('/mobile/cabang');
-      return res.data['data'] as List<dynamic>;
-    } catch (_) {
-      return [];
-    }
+  // ── Cabang ────────────────────────────────────────────────────────────────
+  static Future<List<CabangModel>> getCabang() async {
+    final res = await _dio.get('/mobile/cabang');
+    return (res.data['data'] as List)
+        .map((e) => CabangModel.fromJson(e))
+        .toList();
   }
 
-  // Ambil list pinjaman nasabah
-  static Future<List<dynamic>> getPinjaman(String noCif) async {
-    try {
-      final res = await _dio.get('/mobile/pinjaman', queryParameters: {
-        'no_cif': noCif,
-      });
-      return res.data['data'] as List<dynamic>;
-    } catch (_) {
-      return [];
-    }
+  // ── Pinjaman ──────────────────────────────────────────────────────────────
+  static Future<List<GadaiModel>> getPinjamanNasabah(String noCif) async {
+    final res = await _dio.get(
+      '/mobile/pinjaman',
+      queryParameters: {'no_cif': noCif},
+    );
+    return (res.data['data'] as List)
+        .map((e) => GadaiModel.fromJson(e))
+        .toList();
   }
 
-  // Ambil list pinjaman nasabah
-  static Future<Map<String, dynamic>> getPinjamanNasabah(String noCif) async {
-    try {
-      final res = await _dio
-          .get('/mobile/pinjaman', queryParameters: {'no_cif': noCif});
-      return {'success': true, 'data': res.data['data']};
-    } on DioException catch (e) {
-      return {
-        'success': false,
-        'message': e.message ?? 'Gagal memuat pinjaman'
-      };
-    }
+  static Future<GadaiModel> getDetailPinjaman(int id) async {
+    final res = await _dio.get('/mobile/pinjaman/$id');
+    return GadaiModel.fromJson(res.data['data']);
   }
 
-  // Detail pinjaman
-  static Future<Map<String, dynamic>> getDetailPinjaman(int id) async {
-    try {
-      final res = await _dio.get('/mobile/pinjaman/$id');
-      return {'success': true, 'data': res.data['data']};
-    } on DioException catch (e) {
-      return {'success': false, 'message': e.message ?? 'Gagal memuat detail'};
-    }
-  }
-
-  // Perpanjangan tunai
-  static Future<Map<String, dynamic>> perpanjangTunai(int gadaiId) async {
-    try {
-      final res = await _dio.post('/mobile/pinjaman/$gadaiId/perpanjang',
-          data: {'metode': 'tunai'});
-      return {'success': true, 'data': res.data};
-    } on DioException catch (e) {
-      return {'success': false, 'message': e.message ?? 'Gagal perpanjang'};
-    }
-  }
-
-  // Pelunasan tunai
-  static Future<Map<String, dynamic>> lunasiTunai(int gadaiId) async {
-    try {
-      final res = await _dio
-          .post('/mobile/pinjaman/$gadaiId/lunasi', data: {'metode': 'tunai'});
-      return {'success': true, 'data': res.data};
-    } on DioException catch (e) {
-      return {'success': false, 'message': e.message ?? 'Gagal lunasi'};
-    }
-  }
-
-  // Midtrans Snap token
+  // ── Midtrans ──────────────────────────────────────────────────────────────
   static Future<Map<String, dynamic>> getBayarOnlineToken(
       int gadaiId, String tipe) async {
-    try {
-      final res = await _dio
-          .post('/mobile/pinjaman/$gadaiId/bayar-online', data: {'tipe': tipe});
-      return {'success': true, 'data': res.data};
-    } on DioException catch (e) {
-      return {
-        'success': false,
-        'message': e.message ?? 'Gagal mendapatkan token'
-      };
-    }
+    final res = await _dio.post(
+      '/mobile/pinjaman/$gadaiId/bayar-online',
+      data: {'tipe': tipe},
+    );
+    return res.data as Map<String, dynamic>;
+  }
+
+  static Future<void> paymentSuccess({
+    required int gadaiId,
+    required String tipe,
+    required String orderId,
+    required String transactionId,
+    required String paymentType,
+    required int jasaNominal,
+    required int total,
+  }) async {
+    await _dio.post(
+      '/mobile/pinjaman/$gadaiId/payment-success',
+      data: {
+        'tipe': tipe,
+        'order_id': orderId,
+        'transaction_id': transactionId,
+        'payment_type': paymentType,
+        'jasa_nominal': jasaNominal,
+        'total': total,
+      },
+    );
+  }
+
+  // ── Riwayat per gadai (dari detail pinjaman) ──────────────────────────────
+  static Future<List<Map<String, dynamic>>> getRiwayatPembayaran(
+      int gadaiId) async {
+    final res = await _dio.get('/mobile/pinjaman/$gadaiId/riwayat');
+    return (res.data['data'] as List)
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  // ── Riwayat nasabah (dari halaman akun, semua gadai) ─────────────────────
+  static Future<List<Map<String, dynamic>>> getRiwayatNasabah(
+      String noCif) async {
+    final res = await _dio.get(
+      '/mobile/riwayat-nasabah',
+      queryParameters: {'no_cif': noCif},
+    );
+    return (res.data['data'] as List)
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
   }
 }
