@@ -9,6 +9,12 @@ class AppConstants {
   static const String fonnteToken = 'NmN79zfeUAeSuYhQhsU8';
   static const String fonnteUrl = 'https://api.fonnte.com/send';
 
+  // Midtrans Access Keys
+  static const String midtransClientKey = 'Mid-client-ft8FADp7wjY--jBE';
+
+  // MapTiler Keys
+  static const String mapTilerKey = 'eYtTVTIhSZPNHMflCBOs';
+
   // SharedPreferences keys
   static const String keyPhone = 'user_phone';
   static const String keyPinHash = 'user_pin_hash';

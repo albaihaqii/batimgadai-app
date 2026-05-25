@@ -7,7 +7,13 @@ import 'pinjaman_nasabah_screen.dart';
 
 class PinjamanScreen extends StatefulWidget {
   final bool isNasabah;
-  const PinjamanScreen({super.key, this.isNasabah = false});
+  final GlobalKey<PinjamanNasabahScreenState>? pinjamanNasabahKey;
+
+  const PinjamanScreen({
+    super.key,
+    this.isNasabah = false,
+    this.pinjamanNasabahKey,
+  });
 
   @override
   State<PinjamanScreen> createState() => PinjamanScreenState();
@@ -54,7 +60,7 @@ class PinjamanScreenState extends State<PinjamanScreen> {
   @override
   Widget build(BuildContext context) {
     if (widget.isNasabah) {
-      return const PinjamanNasabahScreen();
+      return PinjamanNasabahScreen(key: widget.pinjamanNasabahKey);
     }
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -83,14 +89,12 @@ class PinjamanScreenState extends State<PinjamanScreen> {
         child: Column(
           children: [
             const SizedBox(height: 14),
-            const Text(
-              'Pinjaman',
-              style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1F5C3A)),
-            ),
+            const Text('Pinjaman',
+                style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1F5C3A))),
             const SizedBox(height: 14),
             AppChipFilter(
               labels: _chips,
@@ -125,15 +129,13 @@ class _EmptyPinjaman extends StatelessWidget {
                   const SizedBox(width: 220, height: 200),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Belum Ada Pinjaman Aktif',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black),
-            ),
+            const Text('Belum Ada Pinjaman Aktif',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black)),
             const SizedBox(height: 8),
             const Text(
               'Kamu belum memiliki transaksi gadai. Yuk, mulai gadaikan barangmu ke outlet sekarang!',
@@ -169,26 +171,22 @@ class _PengunjungModalContent extends StatelessWidget {
           decoration: const BoxDecoration(
               color: Color(0xFFF4F8EF), shape: BoxShape.circle),
           child: Center(
-            child: SvgPicture.asset(
-              'assets/icons/lock-linier.svg',
-              width: 32,
-              height: 32,
-              colorFilter:
-                  const ColorFilter.mode(Color(0xFF1F5C3A), BlendMode.srcIn),
-              errorBuilder: (_, __, ___) => const Icon(Icons.lock_outline,
-                  size: 32, color: Color(0xFF1F5C3A)),
-            ),
+            child: SvgPicture.asset('assets/icons/lock-linier.svg',
+                width: 32,
+                height: 32,
+                colorFilter:
+                    const ColorFilter.mode(Color(0xFF1F5C3A), BlendMode.srcIn),
+                errorBuilder: (_, __, ___) => const Icon(Icons.lock_outline,
+                    size: 32, color: Color(0xFF1F5C3A))),
           ),
         ),
         const SizedBox(height: 20),
-        const Text(
-          'Fitur Khusus Nasabah',
-          style: TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.black),
-        ),
+        const Text('Fitur Khusus Nasabah',
+            style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.black)),
         const SizedBox(height: 8),
         const Text(
           'Verifikasi akun Anda untuk mengakses daftar pinjaman, SBG, dan riwayat transaksi.',
@@ -214,26 +212,22 @@ class _PengunjungModalContent extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SvgPicture.asset(
-                  'assets/icons/verified.svg',
-                  width: 18,
-                  height: 18,
-                  colorFilter: const ColorFilter.mode(
-                      Color(0xFF1F5C3A), BlendMode.srcIn),
-                  errorBuilder: (_, __, ___) => const Icon(
-                      Icons.verified_outlined,
-                      size: 18,
-                      color: Color(0xFF1F5C3A)),
-                ),
+                SvgPicture.asset('assets/icons/verified.svg',
+                    width: 18,
+                    height: 18,
+                    colorFilter: const ColorFilter.mode(
+                        Color(0xFF1F5C3A), BlendMode.srcIn),
+                    errorBuilder: (_, __, ___) => const Icon(
+                        Icons.verified_outlined,
+                        size: 18,
+                        color: Color(0xFF1F5C3A))),
                 const SizedBox(width: 8),
-                const Text(
-                  'Verifikasi Sekarang',
-                  style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1F5C3A)),
-                ),
+                const Text('Verifikasi Sekarang',
+                    style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1F5C3A))),
               ],
             ),
           ),
@@ -250,14 +244,12 @@ class _PengunjungModalContent extends StatelessWidget {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14)),
             ),
-            child: const Text(
-              'Nanti Saja',
-              style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black),
-            ),
+            child: const Text('Nanti Saja',
+                style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black)),
           ),
         ),
         const SizedBox(height: 8),

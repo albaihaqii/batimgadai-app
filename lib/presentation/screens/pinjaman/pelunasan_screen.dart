@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/api_service.dart';
+import '../../../data/models/gadai_model.dart';
+import '../../widgets/common/app_green_header.dart';
 import '../../widgets/common/app_success_sheet.dart';
+import 'midtrans_webview_screen.dart';
+import 'riwayat_pembayaran_screen.dart';
 
 class PelunasanScreen extends StatefulWidget {
-  final int gadaiId;
-  final Map<String, dynamic> data;
-  const PelunasanScreen({super.key, required this.gadaiId, required this.data});
+  final GadaiModel gadai;
+  const PelunasanScreen({super.key, required this.gadai});
 
   @override
   State<PelunasanScreen> createState() => _PelunasanScreenState();
@@ -16,35 +18,80 @@ class PelunasanScreen extends StatefulWidget {
 
 class _PelunasanScreenState extends State<PelunasanScreen> {
   bool _loading = false;
+  String? _errorMsg;
 
-  String _formatRupiah(dynamic value) {
-    final n = (value as num).toInt();
-    final s = n.toString();
-    final result = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) result.write('.');
-      result.write(s[i]);
-    }
-    return 'Rp ${result.toString()}';
-  }
+  GadaiModel get _g => widget.gadai;
 
-  Future<void> _bayarTunai() async {
-    setState(() => _loading = true);
-    final result = await ApiService.lunasiTunai(widget.gadaiId);
-    if (!mounted) return;
-    setState(() => _loading = false);
-    if (result['success'] == true) {
-      _showSuccess();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(result['message'] ?? 'Gagal memproses',
-                style: const TextStyle(fontFamily: 'Poppins'))),
+  Future<void> _bayarOnline() async {
+    setState(() {
+      _loading = true;
+      _errorMsg = null;
+    });
+    try {
+      final result = await ApiService.getBayarOnlineToken(_g.id, 'lunasi');
+      final snapToken = result['snap_token'] as String;
+      final orderId = result['order_id'] as String;
+      final jasaNominal = (result['jasa_nominal'] as num).toInt();
+      final total = (result['total'] as num).toInt();
+
+      if (!mounted) return;
+      setState(() => _loading = false);
+
+      final pr = await Navigator.push<PaymentResult>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MidtransWebViewScreen(
+              snapToken: snapToken, title: 'Pelunasan Gadai'),
+        ),
       );
+
+      if (!mounted || pr == null) return;
+
+      if (pr.status == 'success') {
+        setState(() {
+          _loading = true;
+          _errorMsg = null;
+        });
+        try {
+          await ApiService.paymentSuccess(
+            gadaiId: _g.id,
+            tipe: 'lunasi',
+            orderId: orderId,
+            transactionId:
+                pr.transactionId.isNotEmpty ? pr.transactionId : orderId,
+            paymentType: pr.paymentType.isNotEmpty ? pr.paymentType : 'online',
+            jasaNominal: jasaNominal,
+            total: total,
+          );
+          if (mounted) {
+            setState(() => _loading = false);
+            _showSuccess(orderId);
+          }
+        } catch (e) {
+          debugPrint('[payment-success] $e');
+          if (mounted)
+            setState(() {
+              _loading = false;
+              _errorMsg =
+                  'Pembayaran berhasil namun gagal sinkronisasi. Hubungi CS dengan kode: $orderId';
+            });
+        }
+      } else if (pr.status == 'pending') {
+        setState(() => _errorMsg =
+            'Pembayaran pending. Selesaikan di aplikasi bank Anda.');
+      } else {
+        setState(() => _errorMsg = 'Pembayaran dibatalkan.');
+      }
+    } catch (e) {
+      if (mounted)
+        setState(() {
+          _loading = false;
+          _errorMsg = 'Terjadi kesalahan: ${e.toString()}';
+        });
     }
   }
 
-  void _showSuccess() {
+  void _showSuccess(String orderId) {
     showModalBottomSheet(
       context: context,
       isDismissible: false,
@@ -52,8 +99,9 @@ class _PelunasanScreenState extends State<PelunasanScreen> {
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black54,
       builder: (_) => AppSuccessSheet(
-        title: 'Pelunasan Berhasil',
-        subtitle: 'Barang gadai Anda dapat diambil di outlet BATIM GADAI.',
+        title: 'Pelunasan Berhasil!',
+        subtitle:
+            'Gadai ${_g.noSbg} telah dilunasi.\nBarang dapat diambil di outlet BATIM GADAI.',
         onOk: () {
           Navigator.pop(context);
           Navigator.pop(context);
@@ -65,102 +113,94 @@ class _PelunasanScreenState extends State<PelunasanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final d = widget.data;
-    final nilaiPinjaman = (d['nilai_pinjaman'] as num?)?.toInt() ?? 0;
-    final jasaNominal = (d['jasa_nominal'] as num?)?.toInt() ?? 0;
-    final totalTebus = (d['total_tebus'] as num?)?.toInt() ?? 0;
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Color(0xFFB6D96C),
         statusBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF8F9FA),
         body: Column(
           children: [
-            _buildHeader(context),
+            const AppGreenHeader(title: 'Pelunasan Gadai'),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.primarySurface,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFDCE8CF)),
-                      ),
-                      child: Column(
-                        children: [
-                          _buildRow('No. SBG', d['no_sbg'] ?? '-'),
-                          _buildRow('Barang', d['nama_barang'] ?? '-'),
-                          _buildRow('Tgl Gadai', d['tgl_gadai'] ?? '-'),
-                          _buildRow(
-                              'Jatuh Tempo', d['tgl_jatuh_tempo_label'] ?? '-'),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE0E0E0)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Rincian Pelunasan',
-                              style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black)),
-                          const SizedBox(height: 10),
-                          _buildRow(
-                              'Pokok Pinjaman', _formatRupiah(nilaiPinjaman)),
-                          _buildRow('Biaya Jasa (${d['jasa_persen'] ?? 0}%)',
-                              _formatRupiah(jasaNominal)),
-                          const Divider(height: 16, color: Color(0xFFE0E0E0)),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Total Tebus',
-                                  style: TextStyle(
-                                      fontFamily: 'Poppins',
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black)),
-                              Text(_formatRupiah(totalTebus),
-                                  style: const TextStyle(
-                                      fontFamily: 'Poppins',
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.primary)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text('Pilih Metode Pembayaran',
-                        style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black)),
+                    _card('INFORMASI GADAI', [
+                      _row('No. SBG', _g.noSbg),
+                      _row('Barang', _g.namaDisplay),
+                      _row('Tgl Gadai', _g.tglGadai),
+                      _row('Jatuh Tempo', _g.tglJatuhTempoLabel),
+                      _row('Cabang', _g.namaCabang),
+                    ]),
                     const SizedBox(height: 12),
+                    _card('RINCIAN PELUNASAN', [
+                      _row('Pokok Pinjaman',
+                          GadaiModel.formatRupiah(_g.nilaiPinjaman)),
+                      _row('Biaya Jasa (${_g.jasaPersen.toStringAsFixed(1)}%)',
+                          GadaiModel.formatRupiah(_g.jasaNominal)),
+                      const Divider(
+                          height: 1,
+                          indent: 14,
+                          endIndent: 14,
+                          color: Color(0xFFF0F0F0)),
+                      _row(
+                          'Total Tebus', GadaiModel.formatRupiah(_g.totalTebus),
+                          bold: true, color: AppColors.primary),
+                    ]),
+                    const SizedBox(height: 12),
+                    _note(
+                        'Setelah pelunasan berhasil, barang dapat diambil di outlet BATIM GADAI.'),
+                    if (_errorMsg != null) ...[
+                      const SizedBox(height: 12),
+                      _errorBox(_errorMsg!),
+                    ],
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: TextButton(
+                        onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => RiwayatPembayaranScreen(
+                                    gadaiId: _g.id, noSbg: _g.noSbg))),
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: const BorderSide(color: Color(0xFFE5E7EB)),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.receipt_long_rounded,
+                                size: 16, color: Color(0xFF555555)),
+                            SizedBox(width: 6),
+                            Text('Lihat Riwayat Pembayaran',
+                                style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF555555))),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     SizedBox(
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: _loading ? null : _bayarTunai,
+                        onPressed: _loading ? null : _bayarOnline,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
+                          backgroundColor: const Color(0xFFB6D96C),
+                          disabledBackgroundColor:
+                              const Color(0xFFB6D96C).withValues(alpha: 0.5),
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14)),
@@ -170,41 +210,25 @@ class _PelunasanScreenState extends State<PelunasanScreen> {
                                 width: 22,
                                 height: 22,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2.5, color: Colors.white))
-                            : const Text('Bayar Tunai di Outlet',
-                                style: TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white)),
+                                    strokeWidth: 2.5, color: Color(0xFF1F5C3A)))
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.payment_rounded,
+                                      color: Color(0xFF1F5C3A), size: 18),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                      'Lunasi ${GadaiModel.formatRupiah(_g.totalTebus)}',
+                                      style: const TextStyle(
+                                          fontFamily: 'Poppins',
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF1F5C3A))),
+                                ],
+                              ),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: OutlinedButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Pembayaran online segera hadir.',
-                                    style: TextStyle(fontFamily: 'Poppins'))),
-                          );
-                        },
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(
-                              color: AppColors.primary, width: 1.5),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
-                        ),
-                        child: const Text('Bayar Online via Midtrans',
-                            style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primary)),
-                      ),
-                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
@@ -215,75 +239,81 @@ class _PelunasanScreenState extends State<PelunasanScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      color: const Color(0xFFB6D96C),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.3),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: SvgPicture.asset(
-                      'assets/icons/chevron-left.svg',
-                      width: 20,
-                      height: 20,
-                      colorFilter: const ColorFilter.mode(
-                          Color(0xFF1F5C3A), BlendMode.srcIn),
-                      errorBuilder: (_, __, ___) => const Icon(
-                          Icons.chevron_left,
-                          color: Color(0xFF1F5C3A),
-                          size: 24),
-                    ),
-                  ),
-                ),
-              ),
-              const Expanded(
-                child: Text('Pelunasan Gadai',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1F5C3A))),
-              ),
-              const SizedBox(width: 40),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _card(String title, List<Widget> rows) => Container(
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE5E7EB))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+              child: Text(title,
+                  style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF898A8D),
+                      letterSpacing: 0.4))),
+          const Divider(height: 1, color: Color(0xFFF0F0F0)),
+          ...rows,
+        ]),
+      );
 
-  Widget _buildRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
+  Widget _row(String label, String value, {bool bold = false, Color? color}) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        child:
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(label,
               style: const TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 12,
                   color: Color(0xFF9E9E9E))),
-          Text(value,
-              style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black)),
-        ],
-      ),
-    );
-  }
+          const SizedBox(width: 16),
+          Flexible(
+              child: Text(value,
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12,
+                      fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+                      color: color ?? Colors.black))),
+        ]),
+      );
+
+  Widget _note(String text) => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+            color: const Color(0xFFFEF9C3),
+            borderRadius: BorderRadius.circular(12)),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Icon(Icons.info_outline, size: 14, color: Color(0xFF854D0E)),
+          const SizedBox(width: 8),
+          Expanded(
+              child: Text(text,
+                  style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 11,
+                      color: Color(0xFF854D0E),
+                      height: 1.5))),
+        ]),
+      );
+
+  Widget _errorBox(String msg) => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+            color: const Color(0xFFFEE2E2),
+            borderRadius: BorderRadius.circular(12)),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+              child: Text(msg,
+                  style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 11,
+                      color: Color(0xFFDC2626),
+                      height: 1.4))),
+        ]),
+      );
 }

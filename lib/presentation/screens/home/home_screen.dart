@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../beranda/beranda_pengunjung_screen.dart';
 import '../beranda/beranda_nasabah_screen.dart';
 import '../pinjaman/pinjaman_screen.dart';
+import '../pinjaman/pinjaman_nasabah_screen.dart';
 import '../simulasi/simulasi_screen.dart';
 import '../akun/akun_screen.dart';
 import '../akun/akun_nasabah_screen.dart';
@@ -25,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late bool _isNasabah;
 
   final _pinjamanKey = GlobalKey<PinjamanScreenState>();
+  final _pinjamanNasabahKey = GlobalKey<PinjamanNasabahScreenState>();
   final _akunNasabahKey = GlobalKey<AkunNasabahScreenState>();
 
   static const List<_NavItem> _navItems = [
@@ -48,19 +50,28 @@ class _HomeScreenState extends State<HomeScreen> {
         _isNasabah
             ? const BerandaNasabahScreen()
             : const BerandaPengunjungScreen(),
-        PinjamanScreen(key: _pinjamanKey, isNasabah: _isNasabah),
+        _isNasabah
+            ? PinjamanScreen(
+                key: _pinjamanKey,
+                isNasabah: true,
+                pinjamanNasabahKey: _pinjamanNasabahKey,
+              )
+            : PinjamanScreen(key: _pinjamanKey, isNasabah: false),
         const SimulasiScreen(),
-        // ✅ UPDATE: pakai _akunNasabahKey
         _isNasabah
             ? AkunNasabahScreen(key: _akunNasabahKey)
             : const AkunScreen(),
       ];
 
   void _onNavTap(int index) {
-    // ✅ BARU: reset scroll akun nasabah saat tap tab Akun saat sudah di Akun
     if (index == 3 && _currentIndex == 3 && _isNasabah) {
       _akunNasabahKey.currentState?.resetScroll();
       return;
+    }
+
+    // Reset chip pinjaman saat tap tab pinjaman
+    if (index == 1 && _isNasabah) {
+      _pinjamanNasabahKey.currentState?.resetAndReload();
     }
 
     if (index == 1 && !_isNasabah) {
@@ -162,9 +173,8 @@ class _BottomNavBar extends StatelessWidget {
                   width: 40,
                   height: 3,
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(2)),
                 ),
               ),
               Row(
@@ -179,17 +189,14 @@ class _BottomNavBar extends StatelessWidget {
                         children: [
                           const SizedBox(height: 6),
                           isActive
-                              ? SvgPicture.asset(
-                                  items[i].iconActive,
+                              ? SvgPicture.asset(items[i].iconActive,
                                   width: 26,
                                   height: 26,
                                   errorBuilder: (_, __, ___) => Icon(
                                       Icons.circle,
                                       size: 26,
-                                      color: AppColors.primary),
-                                )
-                              : SvgPicture.asset(
-                                  items[i].iconInactive,
+                                      color: AppColors.primary))
+                              : SvgPicture.asset(items[i].iconInactive,
                                   width: 26,
                                   height: 26,
                                   colorFilter: const ColorFilter.mode(
@@ -197,21 +204,18 @@ class _BottomNavBar extends StatelessWidget {
                                   errorBuilder: (_, __, ___) => const Icon(
                                       Icons.circle_outlined,
                                       size: 26,
-                                      color: Color(0xFFB0B0B0)),
-                                ),
+                                      color: Color(0xFFB0B0B0))),
                           const SizedBox(height: 4),
-                          Text(
-                            items[i].label,
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 10,
-                              fontWeight:
-                                  isActive ? FontWeight.w600 : FontWeight.w400,
-                              color: isActive
-                                  ? AppColors.primary
-                                  : const Color(0xFFB0B0B0),
-                            ),
-                          ),
+                          Text(items[i].label,
+                              style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 10,
+                                  fontWeight: isActive
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                  color: isActive
+                                      ? AppColors.primary
+                                      : const Color(0xFFB0B0B0))),
                         ],
                       ),
                     ),

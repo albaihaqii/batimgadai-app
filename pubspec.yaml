@@ -10,21 +10,25 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # HTTP Client
+  # Networking
   dio: ^5.7.0
 
-  # State Management
+  # State management
   flutter_riverpod: ^2.6.1
 
-  # Local Storage & Security
+  # Storage
   flutter_secure_storage: ^9.0.0
   shared_preferences: ^2.3.2
+
+  # Utils
   crypto: ^3.0.3
+  intl: ^0.19.0
+  url_launcher: ^6.3.0
 
   # Navigation
   go_router: ^14.6.2
 
-  # UI & Font
+  # UI
   google_fonts: ^6.1.0
   cached_network_image: ^3.3.0
   shimmer: ^3.0.0
@@ -32,17 +36,21 @@ dependencies:
   pin_code_fields: ^8.0.1
   flutter_svg: ^2.0.10+1
 
-  # Location
+  # Maps & Lokasi
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
   geolocator: ^13.0.1
   geocoding: ^3.0.0
   permission_handler: ^11.3.1
 
   # Payment
+  webview_flutter: ^4.10.0
   midtrans_sdk: ^1.2.0
 
-  # Utilities
-  intl: ^0.19.0
-  url_launcher: ^6.2.4
+  # Notifikasi & Background
+  flutter_local_notifications: ^17.2.4
+  workmanager: ^0.9.0+3
+  timezone: ^0.9.4
 
 dev_dependencies:
   flutter_test:
@@ -51,13 +59,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
   assets:
     - assets/images/
     - assets/images/illustrations/
     - assets/icons/
     - assets/fonts/
-
   fonts:
     - family: Poppins
       fonts:
