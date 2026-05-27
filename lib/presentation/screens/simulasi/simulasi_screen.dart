@@ -70,10 +70,11 @@ class _SimulasiScreenState extends State<SimulasiScreen> {
             .toList();
         _isLoadingOptions = false;
       });
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Gagal memuat opsi simulasi: $e');
       if (!mounted) return;
       setState(() => _isLoadingOptions = false);
-      _showSnack('Gagal memuat data simulasi dari API local.');
+      _showSnack('Gagal memuat data simulasi dari API.');
     }
   }
 

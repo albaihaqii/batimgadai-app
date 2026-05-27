@@ -135,4 +135,53 @@ class ApiService {
         .map((e) => Map<String, dynamic>.from(e))
         .toList();
   }
+
+
+  // Simulasi
+  static Future<Map<String, dynamic>> getSimulasiOptions() async {
+    final res = await _dio.get('/simulasi');
+    return Map<String, dynamic>.from(res.data['data'] ?? res.data);
+  }
+
+  static Future<List<String>> getSimulasiMerks(String kategori) async {
+    final res = await _dio.get(
+      '/simulasi/merks',
+      queryParameters: {'kategori': kategori},
+    );
+    final data = res.data['data'] ?? res.data;
+    return (data as List).map((e) => e.toString()).toList();
+  }
+
+  static Future<List<String>> getSimulasiTipeModels({
+    required String kategori,
+    required String merk,
+  }) async {
+    final res = await _dio.get(
+      '/simulasi/tipe-models',
+      queryParameters: {
+        'kategori': kategori,
+        'merk': merk,
+      },
+    );
+    final data = res.data['data'] ?? res.data;
+    return (data as List).map((e) => e.toString()).toList();
+  }
+
+  static Future<Map<String, dynamic>> estimateSimulasi({
+    required String kategori,
+    required String kondisi,
+    String? merk,
+    String? tipeModel,
+  }) async {
+    final res = await _dio.post(
+      '/simulasi/estimate',
+      data: {
+        'kategori': kategori,
+        'kondisi': kondisi,
+        if (merk != null && merk.isNotEmpty) 'merk': merk,
+        if (tipeModel != null && tipeModel.isNotEmpty) 'tipe_model': tipeModel,
+      },
+    );
+    return Map<String, dynamic>.from(res.data['data'] ?? res.data);
+  }
 }
