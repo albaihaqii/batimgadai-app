@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import '../../config/app_constants.dart';
-import '../../data/models/gadai_model.dart';
 import '../../data/models/cabang_model.dart';
+import '../../data/models/gadai_model.dart';
 
 class ApiService {
   ApiService._();
@@ -42,7 +42,7 @@ class ApiService {
     required String noCif,
   }) async {
     try {
-      final res = await _dio.post('/mobile/verify-nasabah', data: {
+      final res = await _dio.post('/verify-nasabah', data: {
         'no_ktp': noKtp,
         'no_cif': noCif,
       });
@@ -55,7 +55,7 @@ class ApiService {
 
   // ── Cabang ────────────────────────────────────────────────────────────────
   static Future<List<CabangModel>> getCabang() async {
-    final res = await _dio.get('/mobile/cabang');
+    final res = await _dio.get('/cabang');
     return (res.data['data'] as List)
         .map((e) => CabangModel.fromJson(e))
         .toList();
@@ -63,17 +63,23 @@ class ApiService {
 
   // ── Pinjaman ──────────────────────────────────────────────────────────────
   static Future<List<GadaiModel>> getPinjamanNasabah(String noCif) async {
-    final res = await _dio.get(
-      '/mobile/pinjaman',
-      queryParameters: {'no_cif': noCif},
-    );
-    return (res.data['data'] as List)
-        .map((e) => GadaiModel.fromJson(e))
-        .toList();
+    try {
+      final res = await _dio.get(
+        '/pinjaman',
+        queryParameters: {'no_cif': noCif},
+      );
+      return (res.data['data'] as List)
+          .map((e) => GadaiModel.fromJson(e))
+          .toList();
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      if (statusCode == 403 || statusCode == 404) return [];
+      rethrow;
+    }
   }
 
   static Future<GadaiModel> getDetailPinjaman(int id) async {
-    final res = await _dio.get('/mobile/pinjaman/$id');
+    final res = await _dio.get('/pinjaman/$id');
     return GadaiModel.fromJson(res.data['data']);
   }
 
@@ -81,7 +87,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getBayarOnlineToken(
       int gadaiId, String tipe) async {
     final res = await _dio.post(
-      '/mobile/pinjaman/$gadaiId/bayar-online',
+      '/pinjaman/$gadaiId/bayar-online',
       data: {'tipe': tipe},
     );
     return res.data as Map<String, dynamic>;
@@ -97,7 +103,7 @@ class ApiService {
     required int total,
   }) async {
     await _dio.post(
-      '/mobile/pinjaman/$gadaiId/payment-success',
+      '/pinjaman/$gadaiId/payment-success',
       data: {
         'tipe': tipe,
         'order_id': orderId,
@@ -112,7 +118,7 @@ class ApiService {
   // ── Riwayat per gadai (dari detail pinjaman) ──────────────────────────────
   static Future<List<Map<String, dynamic>>> getRiwayatPembayaran(
       int gadaiId) async {
-    final res = await _dio.get('/mobile/pinjaman/$gadaiId/riwayat');
+    final res = await _dio.get('/pinjaman/$gadaiId/riwayat');
     return (res.data['data'] as List)
         .map((e) => Map<String, dynamic>.from(e))
         .toList();
@@ -122,7 +128,7 @@ class ApiService {
   static Future<List<Map<String, dynamic>>> getRiwayatNasabah(
       String noCif) async {
     final res = await _dio.get(
-      '/mobile/riwayat-nasabah',
+      '/riwayat-nasabah',
       queryParameters: {'no_cif': noCif},
     );
     return (res.data['data'] as List)

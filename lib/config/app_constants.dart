@@ -3,7 +3,7 @@ class AppConstants {
 
   // Base URL API Laravel
   static const String baseUrl =
-      'https://woven-operate-ladies.ngrok-free.dev/api';
+      'https://batimgadai.my.id/api/mobile';
 
   // Fonnte WhatsApp OTP
   static const String fonnteToken = 'NmN79zfeUAeSuYhQhsU8';

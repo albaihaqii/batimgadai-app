@@ -57,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 pinjamanNasabahKey: _pinjamanNasabahKey,
               )
             : PinjamanScreen(key: _pinjamanKey, isNasabah: false),
-        const SimulasiScreen(),
+        SimulasiScreen(isNasabah: _isNasabah),
         _isNasabah
             ? AkunNasabahScreen(key: _akunNasabahKey)
             : const AkunScreen(),
