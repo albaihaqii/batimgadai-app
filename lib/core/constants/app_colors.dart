@@ -38,6 +38,14 @@ class AppColors {
   static const Color surface = Color(0xFFFFFFFF);
   static const Color border = Color(0xFFE5E7EB);
 
+  //Simulasi & Booking
+  static const Color primaryBg = Color(0xFFDCE8CF);
+  static const Color primarySoft = Color(0xFFF4F8EF);
+  static const Color headerGreen = Color(0xFFB6D96C);
+  static const Color textDark = Color(0xFF1A1A1A);
+  static const Color textMedium = Color(0xFF555555);
+  static const Color textLight = Color(0xFF999999);
+
   // Bottom Navigation
   static const Color navActive = primary;
   static const Color navInactive = Color(0xFFA6A6A6);

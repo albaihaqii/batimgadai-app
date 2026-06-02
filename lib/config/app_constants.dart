@@ -13,7 +13,7 @@ class AppConstants {
   static const String midtransClientKey = 'Mid-client-ft8FADp7wjY--jBE';
 
   // MapTiler Keys
-  static const String mapTilerKey = 'eYtTVTIhSZPNHMflCBOs';
+  static const String mapTilerKey = 'AIzaSyBR-ruIZNqJ4IxV6Ai7I9YWpvkVZofHdQQ';
 
   // SharedPreferences keys
   static const String keyPhone = 'user_phone';

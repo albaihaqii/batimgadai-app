@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/services/storage_service.dart';
 import '../../../data/models/gadai_model.dart';
 import '../../widgets/common/app_green_header.dart';
 
@@ -45,22 +46,34 @@ class _RiwayatPembayaranScreenState extends State<RiwayatPembayaranScreen> {
     });
     try {
       List<Map<String, dynamic>> result;
+
       if (_mode == _RiwayatMode.byGadai) {
         result = await ApiService.getRiwayatPembayaran(widget.gadaiId!);
       } else {
-        result = await ApiService.getRiwayatNasabah(widget.noCif ?? '');
+        String noCif = widget.noCif ?? '';
+        if (noCif.isEmpty) {
+          final nasabah = await StorageService.getNasabah();
+          noCif = nasabah?['no_cif'] as String? ?? '';
+        }
+        if (noCif.isEmpty) {
+          throw Exception('Data nasabah tidak ditemukan. Silakan login ulang.');
+        }
+        result = await ApiService.getRiwayatNasabah(noCif);
       }
-      if (mounted)
+
+      if (mounted) {
         setState(() {
           _data = result;
           _loading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loading = false;
-          _error = e.toString();
+          _error = e.toString().replaceAll('Exception:', '').trim();
         });
+      }
     }
   }
 
@@ -93,69 +106,13 @@ class _RiwayatPembayaranScreenState extends State<RiwayatPembayaranScreen> {
   Widget _buildBody() {
     if (_loading) {
       return const Center(
-          child: CircularProgressIndicator(
-              color: AppColors.primary, strokeWidth: 2));
+        child:
+            CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
+      );
     }
-    if (_error != null) {
-      return Center(
-          child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.error_outline, color: AppColors.error, size: 48),
-          const SizedBox(height: 12),
-          Text(_error!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontFamily: 'Poppins', fontSize: 13)),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _load,
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFB6D96C),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10))),
-            child: const Text('Coba Lagi',
-                style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1F5C3A))),
-          ),
-        ]),
-      ));
-    }
-    if (_data.isEmpty) {
-      return Center(
-          child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: const BoxDecoration(
-                color: AppColors.primarySurface, shape: BoxShape.circle),
-            child: const Icon(Icons.receipt_long_rounded,
-                size: 36, color: AppColors.primary),
-          ),
-          const SizedBox(height: 20),
-          const Text('Belum Ada Riwayat',
-              style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black)),
-          const SizedBox(height: 8),
-          const Text(
-            'Riwayat pembayaran perpanjangan dan pelunasan akan muncul di sini.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 12,
-                color: Color(0xFF9E9E9E),
-                height: 1.5),
-          ),
-        ]),
-      ));
-    }
+    if (_error != null) return _buildError();
+    if (_data.isEmpty) return _buildEmpty();
+
     return RefreshIndicator(
       onRefresh: _load,
       color: AppColors.primary,
@@ -171,6 +128,111 @@ class _RiwayatPembayaranScreenState extends State<RiwayatPembayaranScreen> {
     );
   }
 
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: const BoxDecoration(
+                color: Color(0xFFFEE2E2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.wifi_off_rounded,
+                  color: Color(0xFFDC2626), size: 32),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Gagal Memuat Data',
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                  color: Color(0xFF9E9E9E),
+                  height: 1.5),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              height: 44,
+              child: ElevatedButton(
+                onPressed: _load,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFB6D96C),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                ),
+                child: const Text(
+                  'Coba Lagi',
+                  style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1F5C3A)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmpty() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: const BoxDecoration(
+                color: AppColors.primarySurface,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.receipt_long_rounded,
+                  size: 40, color: AppColors.primary),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Belum Ada Riwayat',
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Riwayat perpanjangan dan pelunasan akan muncul di sini setelah Anda melakukan pembayaran.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                  color: Color(0xFF9E9E9E),
+                  height: 1.6),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showDetail(Map<String, dynamic> item) {
     showModalBottomSheet(
       context: context,
@@ -181,125 +243,20 @@ class _RiwayatPembayaranScreenState extends State<RiwayatPembayaranScreen> {
   }
 }
 
+// ── Riwayat Card ──────────────────────────────────────────────────────────────
+
 class _RiwayatCard extends StatelessWidget {
   final Map<String, dynamic> item;
   final bool showNoSbg;
   final VoidCallback onTap;
+
   const _RiwayatCard({
     required this.item,
     required this.showNoSbg,
     required this.onTap,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    final isPerpanjang = item['tipe'] == 'perpanjang';
-    final total = (item['total_bayar'] as num?)?.toInt() ?? 0;
-    final tgl = item['tgl_bayar'] as String? ?? '-';
-    final metode = item['metode_bayar'] as String? ?? '-';
-    final label = item['tipe_label'] as String? ?? '-';
-    final noSbg = item['no_sbg'] as String? ?? '';
-
-    final Color badgeBg =
-        isPerpanjang ? const Color(0xFFDBEAFE) : AppColors.primarySurface;
-    final Color badgeColor =
-        isPerpanjang ? const Color(0xFF1D4ED8) : AppColors.primary;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x06000000), blurRadius: 6, offset: Offset(0, 2))
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                    color: badgeBg, borderRadius: BorderRadius.circular(20)),
-                child: Text(label,
-                    style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: badgeColor)),
-              ),
-              if (showNoSbg && noSbg.isNotEmpty) ...[
-                const SizedBox(width: 8),
-                Text(noSbg,
-                    style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 10,
-                        color: Color(0xFF9E9E9E))),
-              ],
-              const Spacer(),
-              Text(tgl,
-                  style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 10,
-                      color: Color(0xFF9E9E9E))),
-            ]),
-            const SizedBox(height: 10),
-            const Divider(height: 1, color: Color(0xFFF0F0F0)),
-            const SizedBox(height: 10),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Total Bayar',
-                    style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 10,
-                        color: Color(0xFF9E9E9E))),
-                const SizedBox(height: 2),
-                Text(GadaiModel.formatRupiah(total),
-                    style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary)),
-              ]),
-              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                const Text('Metode',
-                    style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 10,
-                        color: Color(0xFF9E9E9E))),
-                const SizedBox(height: 2),
-                Text(_fmtMetode(metode),
-                    style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black)),
-              ]),
-            ]),
-            const SizedBox(height: 6),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Icon(Icons.chevron_right,
-                  size: 14, color: Color(0xFF9E9E9E)),
-              const Text('Tap untuk detail',
-                  style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 10,
-                      color: Color(0xFF9E9E9E))),
-            ]),
-          ]),
-        ),
-      ),
-    );
-  }
-
-  static String _fmtMetode(String m) {
+  static String formatMetode(String m) {
     const map = {
       'bca_va': 'BCA Virtual Account',
       'bni_va': 'BNI Virtual Account',
@@ -310,43 +267,234 @@ class _RiwayatCard extends StatelessWidget {
       'shopeepay': 'ShopeePay',
       'qris': 'QRIS',
       'credit_card': 'Kartu Kredit',
+      'midtrans': 'Online',
+      'tunai': 'Tunai',
       'online': 'Online',
     };
-    return map[m.toLowerCase().trim()] ?? m.toUpperCase();
+    return map[m.toLowerCase().trim()] ?? m;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tipe = item['tipe']?.toString() ?? '';
+    final isPerpanjang = tipe == 'perpanjang';
+    final total =
+        (double.tryParse(item['total_bayar']?.toString() ?? '0') ?? 0.0)
+            .toInt();
+    final tgl = item['tgl_bayar']?.toString() ?? '-';
+    final metode = item['metode_bayar']?.toString() ?? '-';
+    final label = item['tipe_label']?.toString() ?? '-';
+    final noSbg = item['no_sbg']?.toString() ?? '';
+    final status = item['status_bayar']?.toString() ?? 'berhasil';
+
+    // Warna badge tipe — biru untuk perpanjang, hijau untuk lunasi
+    final Color tipeColor =
+        isPerpanjang ? const Color(0xFF1D4ED8) : AppColors.primary;
+    final Color tipeBg =
+        isPerpanjang ? const Color(0xFFDBEAFE) : AppColors.primarySurface;
+
+    // Border kiri — konsisten dengan _PinjamanCard
+    final Color borderLeft =
+        isPerpanjang ? const Color(0xFF3B82F6) : AppColors.primary;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          // Border kiri saja — sama seperti _PinjamanCard agar kompatibel
+          // dengan borderRadius (Flutter tidak mendukung borderRadius
+          // jika Border memiliki 4 sisi dengan warna berbeda)
+          border: Border(left: BorderSide(color: borderLeft, width: 4)),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x08000000), blurRadius: 8, offset: Offset(0, 2))
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Baris atas: icon + identitas + badge tipe
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: tipeBg,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        isPerpanjang
+                            ? Icons.autorenew_rounded
+                            : Icons.check_circle_outline_rounded,
+                        size: 22,
+                        color: tipeColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: tipeColor),
+                        ),
+                        const SizedBox(height: 2),
+                        if (showNoSbg && noSbg.isNotEmpty)
+                          Text(
+                            noSbg,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 11,
+                                color: Color(0xFF9E9E9E)),
+                          )
+                        else
+                          Text(
+                            tgl,
+                            style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 11,
+                                color: Color(0xFF9E9E9E)),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Badge status bayar
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: status == 'berhasil'
+                          ? const Color(0xFFDCFCE7)
+                          : const Color(0xFFFEF9C3),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      status == 'berhasil' ? 'Berhasil' : 'Pending',
+                      style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: status == 'berhasil'
+                              ? const Color(0xFF16A34A)
+                              : const Color(0xFF854D0E)),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+              Container(height: 1, color: const Color(0xFFF0F0F0)),
+              const SizedBox(height: 10),
+
+              // Baris bawah: total bayar + metode + tanggal (jika showNoSbg)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Total Bayar',
+                        style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 10,
+                            color: Color(0xFF9E9E9E)),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        GadaiModel.formatRupiah(total),
+                        style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: tipeColor),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        formatMetode(metode),
+                        style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black),
+                      ),
+                      const SizedBox(height: 2),
+                      // Jika mode byNasabah, tampilkan tanggal di sini
+                      if (showNoSbg)
+                        Text(
+                          tgl,
+                          style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 10,
+                              color: Color(0xFF9E9E9E)),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
-// Detail sheet mirip mobile banking
+// ── Detail Bottom Sheet ───────────────────────────────────────────────────────
+
 class _DetailSheet extends StatelessWidget {
   final Map<String, dynamic> item;
   const _DetailSheet({required this.item});
 
   @override
   Widget build(BuildContext context) {
-    final isPerpanjang = item['tipe'] == 'perpanjang';
-    final total = (item['total_bayar'] as num?)?.toInt() ?? 0;
-    final tgl = item['tgl_bayar'] as String? ?? '-';
-    final metode = item['metode_bayar'] as String? ?? '-';
-    final label = item['tipe_label'] as String? ?? '-';
-    final orderId = item['order_id'] as String? ?? '-';
-    final noSbg = item['no_sbg'] as String? ?? '-';
-    final tglBaru = item['tgl_jt_baru'] as String? ?? '';
-    final status = item['status_bayar'] as String? ?? 'berhasil';
+    final tipe = item['tipe']?.toString() ?? '';
+    final isPerpanjang = tipe == 'perpanjang';
+    final total =
+        (double.tryParse(item['total_bayar']?.toString() ?? '0') ?? 0.0)
+            .toInt();
+    final tgl = item['tgl_bayar']?.toString() ?? '-';
+    final metode = item['metode_bayar']?.toString() ?? '-';
+    final label = item['tipe_label']?.toString() ?? '-';
+    final orderId = item['order_id']?.toString() ?? '-';
+    final noSbg = item['no_sbg']?.toString() ?? '-';
+    final tglBaru = item['tgl_jt_baru']?.toString() ?? '';
+    final status = item['status_bayar']?.toString() ?? 'berhasil';
 
-    final Color badgeColor =
+    final Color tipeColor =
         isPerpanjang ? const Color(0xFF1D4ED8) : AppColors.primary;
 
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.fromLTRB(
-          20, 0, 20, MediaQuery.of(context).padding.bottom + 20),
+          20, 0, 20, MediaQuery.of(context).padding.bottom + 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
+          // Handle bar
           Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -354,64 +502,84 @@ class _DetailSheet extends StatelessWidget {
                 width: 44,
                 height: 4,
                 decoration: BoxDecoration(
-                    color: const Color(0xFFD0D0D0),
-                    borderRadius: BorderRadius.circular(2)),
+                  color: const Color(0xFFD0D0D0),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
           ),
 
-          // Icon sukses
+          // Icon
           Container(
-            width: 64,
-            height: 64,
+            width: 68,
+            height: 68,
             decoration: BoxDecoration(
-                color: AppColors.primarySurface, shape: BoxShape.circle),
-            child: const Icon(Icons.check_circle_rounded,
-                size: 36, color: AppColors.primary),
+              color: isPerpanjang
+                  ? const Color(0xFFDBEAFE)
+                  : AppColors.primarySurface,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isPerpanjang
+                  ? Icons.autorenew_rounded
+                  : Icons.check_circle_rounded,
+              size: 36,
+              color: tipeColor,
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(label,
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: tipeColor),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            GadaiModel.formatRupiah(total),
+            style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                color: Colors.black),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: status == 'berhasil'
+                  ? const Color(0xFFDCFCE7)
+                  : const Color(0xFFFEF9C3),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              status == 'berhasil' ? 'BERHASIL' : 'PENDING',
               style: TextStyle(
                   fontFamily: 'Poppins',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: badgeColor)),
-          const SizedBox(height: 4),
-          Text(GadaiModel.formatRupiah(total),
-              style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 24,
+                  fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: Colors.black)),
-          const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-            decoration: BoxDecoration(
-                color: const Color(0xFFDCFCE7),
-                borderRadius: BorderRadius.circular(20)),
-            child: Text(status.toUpperCase(),
-                style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF16A34A))),
+                  color: status == 'berhasil'
+                      ? const Color(0xFF16A34A)
+                      : const Color(0xFF854D0E)),
+            ),
           ),
           const SizedBox(height: 20),
           const Divider(height: 1, color: Color(0xFFF0F0F0)),
           const SizedBox(height: 16),
 
-          // Detail rows
           _row('No. SBG', noSbg),
           _row('Tanggal', tgl),
-          _row('Metode Bayar', _RiwayatCard._fmtMetode(metode)),
+          _row('Metode Bayar', _RiwayatCard.formatMetode(metode)),
           if (isPerpanjang && tglBaru.isNotEmpty && tglBaru != '-')
-            _row('JT Baru', tglBaru, valueColor: AppColors.primary),
-          _row('Order ID', orderId),
+            _row('Jatuh Tempo Baru', tglBaru, valueColor: AppColors.primary),
+          if (orderId != '-') _row('Order ID', orderId),
 
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
-            height: 48,
+            height: 50,
             child: ElevatedButton(
               onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(
@@ -420,12 +588,14 @@ class _DetailSheet extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Tutup',
-                  style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1F5C3A))),
+              child: const Text(
+                'Tutup',
+                style: TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1F5C3A)),
+              ),
             ),
           ),
         ],
@@ -435,20 +605,30 @@ class _DetailSheet extends StatelessWidget {
 
   Widget _row(String label, String value, {Color? valueColor}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(label,
+      padding: const EdgeInsets.only(bottom: 13),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
             style: const TextStyle(
-                fontFamily: 'Poppins', fontSize: 12, color: Color(0xFF9E9E9E))),
-        Flexible(
-            child: Text(value,
-                textAlign: TextAlign.right,
-                style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: valueColor ?? Colors.black))),
-      ]),
+                fontFamily: 'Poppins', fontSize: 12, color: Color(0xFF9E9E9E)),
+          ),
+          const SizedBox(width: 16),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: valueColor ?? Colors.black),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

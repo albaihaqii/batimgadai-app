@@ -16,7 +16,7 @@ class ApiService {
     },
   ));
 
-  // ── OTP ──────────────────────────────────────────────────────────────────
+  // OTP
   static Future<bool> kirimOtp(String phone, String otp) async {
     try {
       final res = await Dio().post(
@@ -36,7 +36,7 @@ class ApiService {
     }
   }
 
-  // ── Auth ─────────────────────────────────────────────────────────────────
+  // Auth
   static Future<Map<String, dynamic>> verifyNasabah({
     required String noKtp,
     required String noCif,
@@ -53,23 +53,31 @@ class ApiService {
     }
   }
 
-  // ── Cabang ────────────────────────────────────────────────────────────────
+  // Cabang
   static Future<List<CabangModel>> getCabang() async {
-    final res = await _dio.get('/mobile/cabang');
-    return (res.data['data'] as List)
-        .map((e) => CabangModel.fromJson(e))
-        .toList();
+    try {
+      final res = await _dio.get('/mobile/cabang');
+      return (res.data['data'] as List)
+          .map((e) => CabangModel.fromJson(e))
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
-  // ── Pinjaman ──────────────────────────────────────────────────────────────
+  // Pinjaman
   static Future<List<GadaiModel>> getPinjamanNasabah(String noCif) async {
-    final res = await _dio.get(
-      '/mobile/pinjaman',
-      queryParameters: {'no_cif': noCif},
-    );
-    return (res.data['data'] as List)
-        .map((e) => GadaiModel.fromJson(e))
-        .toList();
+    try {
+      final res = await _dio.get(
+        '/mobile/pinjaman',
+        queryParameters: {'no_cif': noCif},
+      );
+      return (res.data['data'] as List)
+          .map((e) => GadaiModel.fromJson(e))
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   static Future<GadaiModel> getDetailPinjaman(int id) async {
@@ -77,7 +85,7 @@ class ApiService {
     return GadaiModel.fromJson(res.data['data']);
   }
 
-  // ── Midtrans ──────────────────────────────────────────────────────────────
+  // Midtrans
   static Future<Map<String, dynamic>> getBayarOnlineToken(
       int gadaiId, String tipe) async {
     final res = await _dio.post(
@@ -109,18 +117,23 @@ class ApiService {
     );
   }
 
-  // ── Riwayat per gadai (dari detail pinjaman) ──────────────────────────────
+  // Riwayat per gadai
   static Future<List<Map<String, dynamic>>> getRiwayatPembayaran(
       int gadaiId) async {
-    final res = await _dio.get('/mobile/pinjaman/$gadaiId/riwayat');
-    return (res.data['data'] as List)
-        .map((e) => Map<String, dynamic>.from(e))
-        .toList();
+    try {
+      final res = await _dio.get('/mobile/pinjaman/$gadaiId/riwayat');
+      return (res.data['data'] as List)
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
-  // ── Riwayat nasabah (dari halaman akun, semua gadai) ─────────────────────
+  // Riwayat semua gadai nasabah
   static Future<List<Map<String, dynamic>>> getRiwayatNasabah(
       String noCif) async {
+    if (noCif.isEmpty) throw Exception('no_cif tidak boleh kosong');
     final res = await _dio.get(
       '/mobile/riwayat-nasabah',
       queryParameters: {'no_cif': noCif},
@@ -128,5 +141,98 @@ class ApiService {
     return (res.data['data'] as List)
         .map((e) => Map<String, dynamic>.from(e))
         .toList();
+  }
+
+  // Notifikasi
+  // noCif kosong = pengunjung (hanya info umum)
+  // noCif diisi = nasabah (info umum + notif personal)
+  static Future<List<Map<String, dynamic>>> getNotifikasi(String noCif) async {
+    try {
+      final params = noCif.isNotEmpty ? {'no_cif': noCif} : <String, dynamic>{};
+      final res = await _dio.get(
+        '/mobile/notifikasi',
+        queryParameters: params,
+      );
+      if (res.data['success'] == true) {
+        return (res.data['data'] as List)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> markNotifikasiRead(int id) async {
+    try {
+      await _dio.post('/mobile/notifikasi/$id/read');
+    } catch (_) {}
+  }
+
+  // Banner mobile
+  static Future<List<Map<String, dynamic>>> getBanners() async {
+    try {
+      final res = await _dio.get('/mobile/banners');
+      if (res.data['success'] == true) {
+        return (res.data['data'] as List)
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // FCM Token — kirim ke backend saat login/verifikasi
+  static Future<void> saveFcmToken({
+    required String phone,
+    required String token,
+    String? deviceId,
+  }) async {
+    await _dio.post(
+      '/mobile/fcm-token',
+      data: {
+        'no_hp': phone.isNotEmpty ? phone : null,
+        'token': token,
+        'device_id': deviceId,
+        'platform': 'android',
+      },
+    );
+  }
+
+  // Ambil options simulasi by kategori
+  static Future<Map<String, dynamic>> getSimulasiOptions(
+      String kategori) async {
+    final res = await _dio.get(
+      '/simulasi/options',
+      queryParameters: {'kategori': kategori},
+    );
+    return res.data as Map<String, dynamic>;
+  }
+
+  // Hitung estimasi simulasi
+  static Future<Map<String, dynamic>> hitungSimulasi(
+      Map<String, dynamic> body) async {
+    final res = await _dio.post('/simulasi/hitung', data: body);
+    return res.data as Map<String, dynamic>;
+  }
+
+  // Submit booking kunjungan
+  static Future<Map<String, dynamic>> submitBooking(
+      Map<String, dynamic> body) async {
+    final res = await _dio.post('/mobile/booking', data: body);
+    return res.data as Map<String, dynamic>;
+  }
+
+  // Ambil daftar booking nasabah
+  static Future<List<Map<String, dynamic>>> getBookingList(String noCif) async {
+    final res = await _dio.get(
+      '/mobile/booking',
+      queryParameters: {'no_cif': noCif},
+    );
+    final data = res.data['data'] as List;
+    return data.map((e) => Map<String, dynamic>.from(e)).toList();
   }
 }

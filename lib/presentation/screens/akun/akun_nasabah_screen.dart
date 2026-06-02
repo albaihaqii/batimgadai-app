@@ -11,7 +11,7 @@ import '../info/faq_screen.dart';
 import '../info/hubungi_kami_screen.dart';
 import '../info/tentang_aplikasi_screen.dart';
 import '../pinjaman/riwayat_pembayaran_screen.dart';
-import 'booking_kunjungan_screen.dart';
+import '../booking/booking_screen.dart';
 import 'data_pribadi_screen.dart';
 import 'ganti_pin_lama_screen.dart';
 
@@ -56,48 +56,72 @@ class AkunNasabahScreenState extends ConsumerState<AkunNasabahScreen> {
 
   void resetScroll() {
     if (_scrollController.hasClients) {
-      _scrollController.animateTo(0,
-          duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     }
   }
 
-  void _onMenuTap(BuildContext context, String label) {
+  Future<void> _onMenuTap(BuildContext context, String label) async {
     switch (label) {
       case 'Data Pribadi':
         Navigator.push(context,
             MaterialPageRoute(builder: (_) => const DataPribadiScreen()));
         break;
+
       case 'Pinjaman Aktif Saya':
         Navigator.popUntil(context, (route) => route.isFirst);
         break;
+
       case 'Riwayat Pembayaran':
-        Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const RiwayatPembayaranScreen()));
+        // Ambil noCif dari provider dulu, fallback ke storage
+        final nasabah = ref.read(nasabahProvider);
+        String noCif = nasabah.noCif ?? '';
+        if (noCif.isEmpty) {
+          final stored = await StorageService.getNasabah();
+          noCif = stored?['no_cif'] as String? ?? '';
+        }
+        if (!context.mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RiwayatPembayaranScreen(noCif: noCif),
+          ),
+        );
         break;
+
       case 'Booking Kunjungan Saya':
-        Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const BookingKunjunganScreen()));
+        Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const BookingScreen()));
         break;
+
       case 'Ganti PIN':
         Navigator.push(context,
             MaterialPageRoute(builder: (_) => const GantiPinLamaScreen()));
         break;
+
       case 'Info Gadai':
         Navigator.push(context,
             MaterialPageRoute(builder: (_) => const InfoGadaiScreen()));
         break;
+
       case 'Cara Gadai':
         Navigator.push(context,
             MaterialPageRoute(builder: (_) => const CaraGadaiScreen()));
         break;
+
       case 'FAQ':
         Navigator.push(
             context, MaterialPageRoute(builder: (_) => const FaqScreen()));
         break;
+
       case 'Hubungi Kami':
         Navigator.push(context,
             MaterialPageRoute(builder: (_) => const HubungiKamiScreen()));
         break;
+
       case 'Tentang Aplikasi':
         Navigator.push(context,
             MaterialPageRoute(builder: (_) => const TentangAplikasiScreen()));
@@ -194,88 +218,96 @@ class AkunNasabahScreenState extends ConsumerState<AkunNasabahScreen> {
             bottom: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 52),
-              child: Column(children: [
-                // ── Header title only, no bell ──
-                const SizedBox(
-                  height: 36,
-                  child: Center(
-                    child: Text('Akun',
+              child: Column(
+                children: [
+                  const SizedBox(
+                    height: 36,
+                    child: Center(
+                      child: Text(
+                        'Akun',
                         style: TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF1F5C3A))),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  width: 84,
-                  height: 84,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border:
-                        Border.all(color: const Color(0xFFEAF3E1), width: 4),
-                  ),
-                  child: Center(
-                    child: SvgPicture.asset(
-                      'assets/icons/user-bold.svg',
-                      width: 38,
-                      height: 38,
-                      colorFilter: const ColorFilter.mode(
-                          Color(0xFF1F5C3A), BlendMode.srcIn),
-                      errorBuilder: (_, __, ___) => const Icon(Icons.person,
-                          size: 38, color: Color(0xFF1F5C3A)),
+                            color: Color(0xFF1F5C3A)),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  nasabah.nama ?? 'Nasabah',
-                  style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  nasabah.noCif ?? '',
-                  style: const TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 12,
-                      color: Color(0xFF555555)),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                      color: const Color(0xFFD9EDB3),
-                      borderRadius: BorderRadius.circular(20)),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SvgPicture.asset(
-                        'assets/icons/verified.svg',
-                        width: 13,
-                        height: 13,
+                  const SizedBox(height: 16),
+                  Container(
+                    width: 84,
+                    height: 84,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border:
+                          Border.all(color: const Color(0xFFEAF3E1), width: 4),
+                    ),
+                    child: Center(
+                      child: SvgPicture.asset(
+                        'assets/icons/user-bold.svg',
+                        width: 38,
+                        height: 38,
                         colorFilter: const ColorFilter.mode(
                             Color(0xFF1F5C3A), BlendMode.srcIn),
-                        errorBuilder: (_, __, ___) => const Icon(Icons.verified,
-                            size: 13, color: Color(0xFF1F5C3A)),
+                        errorBuilder: (_, __, ___) => const Icon(Icons.person,
+                            size: 38, color: Color(0xFF1F5C3A)),
                       ),
-                      const SizedBox(width: 5),
-                      const Text('Nasabah Terverifikasi',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    nasabah.nama ?? 'Nasabah',
+                    style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    nasabah.noCif ?? '',
+                    style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12,
+                        color: Color(0xFF555555)),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD9EDB3),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SvgPicture.asset(
+                          'assets/icons/verified.svg',
+                          width: 13,
+                          height: 13,
+                          colorFilter: const ColorFilter.mode(
+                              Color(0xFF1F5C3A), BlendMode.srcIn),
+                          errorBuilder: (_, __, ___) => const Icon(
+                              Icons.verified,
+                              size: 13,
+                              color: Color(0xFF1F5C3A)),
+                        ),
+                        const SizedBox(width: 5),
+                        const Text(
+                          'Nasabah Terverifikasi',
                           style: TextStyle(
                               fontFamily: 'Poppins',
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
-                              color: Color(0xFF1F5C3A))),
-                    ],
+                              color: Color(0xFF1F5C3A)),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ]),
+                ],
+              ),
             ),
           ),
         ),
@@ -289,46 +321,50 @@ class AkunNasabahScreenState extends ConsumerState<AkunNasabahScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                  color: const Color(0xFF1F5C3A),
-                  borderRadius: BorderRadius.circular(14)),
-              child: Row(children: [
-                SvgPicture.asset(
-                  'assets/icons/wallet-linier.svg',
-                  width: 24,
-                  height: 24,
-                  colorFilter:
-                      const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-                  errorBuilder: (_, __, ___) => const Icon(
-                      Icons.account_balance_wallet_outlined,
-                      size: 24,
-                      color: Colors.white),
-                ),
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '2 Pinjaman Aktif',
-                        style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Pantau semua pinjaman Anda secara real-time.',
-                        style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 10,
-                            color: Colors.white70),
-                      ),
-                    ],
+                color: const Color(0xFF1F5C3A),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  SvgPicture.asset(
+                    'assets/icons/wallet-linier.svg',
+                    width: 24,
+                    height: 24,
+                    colorFilter:
+                        const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                    errorBuilder: (_, __, ___) => const Icon(
+                        Icons.account_balance_wallet_outlined,
+                        size: 24,
+                        color: Colors.white),
                   ),
-                ),
-                const Icon(Icons.chevron_right, color: Colors.white, size: 20),
-              ]),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Pinjaman Aktif Saya',
+                          style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Pantau semua pinjaman Anda secara real-time.',
+                          style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 10,
+                              color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right,
+                      color: Colors.white, size: 20),
+                ],
+              ),
             ),
           ),
         ),
@@ -337,13 +373,15 @@ class AkunNasabahScreenState extends ConsumerState<AkunNasabahScreen> {
   }
 
   Widget _sectionLabel(String label) {
-    return Text(label,
-        style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF898A8D),
-            letterSpacing: 0.3));
+    return Text(
+      label,
+      style: const TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF898A8D),
+          letterSpacing: 0.3),
+    );
   }
 
   Widget _buildMenuGroup(BuildContext context, List<_MenuItem> items) {
@@ -356,23 +394,24 @@ class AkunNasabahScreenState extends ConsumerState<AkunNasabahScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: List.generate(
-            items.length,
-            (i) => Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _MenuTile(
-                      item: items[i],
-                      onTap: () => _onMenuTap(context, items[i].label),
-                    ),
-                    if (i < items.length - 1)
-                      const Divider(
-                          height: 1,
-                          thickness: 0.5,
-                          indent: 14,
-                          endIndent: 14,
-                          color: Color(0xFFE0E0E0)),
-                  ],
-                )),
+          items.length,
+          (i) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _MenuTile(
+                item: items[i],
+                onTap: () => _onMenuTap(context, items[i].label),
+              ),
+              if (i < items.length - 1)
+                const Divider(
+                    height: 1,
+                    thickness: 0.5,
+                    indent: 14,
+                    endIndent: 14,
+                    color: Color(0xFFE0E0E0)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -404,18 +443,22 @@ class AkunNasabahScreenState extends ConsumerState<AkunNasabahScreen> {
                   const Icon(Icons.logout, size: 18, color: Color(0xFFE53935)),
             ),
             const SizedBox(width: 8),
-            const Text('Keluar',
-                style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFFE53935))),
+            const Text(
+              'Keluar',
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFFE53935)),
+            ),
           ],
         ),
       ),
     );
   }
 }
+
+// Supporting Classes
 
 class _MenuItem {
   final String icon, label;
@@ -434,29 +477,36 @@ class _MenuTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-        child: Row(children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
                 color: const Color(0xFFF4F8EF),
-                borderRadius: BorderRadius.circular(9)),
-            padding: const EdgeInsets.all(8),
-            child: SvgPicture.asset(item.icon,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              padding: const EdgeInsets.all(8),
+              child: SvgPicture.asset(
+                item.icon,
                 errorBuilder: (_, __, ___) =>
-                    const Icon(Icons.circle, size: 18)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(item.label,
+                    const Icon(Icons.circle, size: 18),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                item.label,
                 style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: Colors.black)),
-          ),
-          const Icon(Icons.chevron_right, color: Color(0xFF1F5C3A), size: 18),
-        ]),
+                    color: Colors.black),
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Color(0xFF1F5C3A), size: 18),
+          ],
+        ),
       ),
     );
   }
@@ -477,22 +527,26 @@ class _LogoutDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset('assets/images/illustrations/logout.png',
-                width: 150,
-                height: 175,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) =>
-                    const SizedBox(width: 150, height: 175)),
+            Image.asset(
+              'assets/images/illustrations/logout.png',
+              width: 150,
+              height: 175,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) =>
+                  const SizedBox(width: 150, height: 175),
+            ),
             const SizedBox(height: 16),
-            const Text('Keluar dari Akun?',
-                style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black)),
+            const Text(
+              'Keluar dari Akun?',
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black),
+            ),
             const SizedBox(height: 8),
             const Text(
-              'Dengan menekan Ya, Anda akan keluar dari akun\nini. Pastikan semua aktivitas sudah selesai\nsebelum melanjutkan.',
+              'Dengan menekan Ya, Anda akan keluar dari akun ini. Pastikan semua aktivitas sudah selesai sebelum melanjutkan.',
               textAlign: TextAlign.center,
               style: TextStyle(
                   fontFamily: 'Poppins',
@@ -517,12 +571,14 @@ class _LogoutDialog extends StatelessWidget {
                       backgroundColor: Colors.white,
                       padding: EdgeInsets.zero,
                     ),
-                    child: const Text('Tidak',
-                        style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black)),
+                    child: const Text(
+                      'Tidak',
+                      style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -538,12 +594,14 @@ class _LogoutDialog extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10)),
                       padding: EdgeInsets.zero,
                     ),
-                    child: const Text('Ya',
-                        style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF1F5C3A))),
+                    child: const Text(
+                      'Ya',
+                      style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF1F5C3A)),
+                    ),
                   ),
                 ),
               ],

@@ -42,9 +42,9 @@ class DataPribadiScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               _buildCard([
                 _buildField('Cabang Terdaftar', nasabah.cabang ?? '-',
-                    'assets/icons/location.svg'),
+                    'assets/icons/location-bold.svg'),
                 _buildField('Alamat', nasabah.alamat ?? '-',
-                    'assets/icons/location.svg'),
+                    'assets/icons/location-bold.svg'),
               ]),
               const SizedBox(height: 16),
               Container(

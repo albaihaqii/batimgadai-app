@@ -3,18 +3,21 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/services/storage_service.dart';
+// import '../../../data/models/gadai_model.dart';
 import '../../widgets/common/app_green_header.dart';
 
-class NotifikasiScreen extends StatefulWidget {
-  const NotifikasiScreen({super.key});
+class NotifikasiNasabahScreen extends StatefulWidget {
+  const NotifikasiNasabahScreen({super.key});
 
   @override
-  State<NotifikasiScreen> createState() => _NotifikasiScreenState();
+  State<NotifikasiNasabahScreen> createState() =>
+      _NotifikasiNasabahScreenState();
 }
 
-class _NotifikasiScreenState extends State<NotifikasiScreen> {
+class _NotifikasiNasabahScreenState extends State<NotifikasiNasabahScreen> {
   bool _loading = true;
-  List<Map<String, dynamic>> _notifs = [];
+  List<_NasabahNotif> _notifs = [];
   String? _error;
 
   @override
@@ -29,11 +32,66 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
       _error = null;
     });
     try {
-      // Pengunjung — tidak kirim no_cif, hanya notif info umum
-      final data = await ApiService.getNotifikasi('');
+      final nasabah = await StorageService.getNasabah();
+      final noCif = nasabah?['no_cif'] as String? ?? '';
+
+      final items = <_NasabahNotif>[];
+
+      // Notif dari data pinjaman lokal (jatuh tempo)
+      if (noCif.isNotEmpty) {
+        final pinjaman = await ApiService.getPinjamanNasabah(noCif);
+        for (final g in pinjaman) {
+          if (g.status == 'lunas') continue;
+          final h = g.sisaHari;
+          if (h > 7) continue;
+
+          String title;
+          String tipe;
+          if (h < 0) {
+            title = 'Jatuh Tempo Terlewat!';
+            tipe = 'danger';
+          } else if (h == 0) {
+            title = 'Jatuh Tempo Hari Ini!';
+            tipe = 'danger';
+          } else if (h == 1) {
+            title = 'Jatuh Tempo Besok!';
+            tipe = 'danger';
+          } else if (h <= 3) {
+            title = 'Segera Jatuh Tempo (H-$h)';
+            tipe = 'warning';
+          } else {
+            title = 'Pengingat Jatuh Tempo (H-$h)';
+            tipe = 'info';
+          }
+
+          items.add(_NasabahNotif(
+            title: title,
+            body: h < 0
+                ? '${g.namaDisplay} (${g.noSbg}) melewati jatuh tempo ${h.abs()} hari.'
+                : '${g.namaDisplay} (${g.noSbg}) jatuh tempo ${g.tglJatuhTempoLabel}.',
+            tipe: tipe,
+            sub: 'Jatuh tempo: ${g.tglJatuhTempoLabel}',
+            isRead: false,
+          ));
+        }
+      }
+
+      // Notif dari API backend (booking + info umum)
+      final apiNotifs = await ApiService.getNotifikasi(noCif);
+      for (final n in apiNotifs) {
+        items.add(_NasabahNotif(
+          title: n['judul'] as String? ?? 'Notifikasi',
+          body: n['isi'] as String? ?? '',
+          tipe: _mapTipe(n['tipe_notif'] as String? ?? 'info'),
+          sub: n['created_at'] as String? ?? '',
+          isRead: n['is_read'] as bool? ?? false,
+          id: n['id'] as int?,
+        ));
+      }
+
       if (mounted)
         setState(() {
-          _notifs = data;
+          _notifs = items;
           _loading = false;
         });
     } catch (e) {
@@ -42,6 +100,26 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
           _loading = false;
           _error = e.toString();
         });
+    }
+  }
+
+  String _mapTipe(String t) {
+    switch (t) {
+      case 'booking_kunjungan':
+        return 'booking';
+      case 'info':
+        return 'info';
+      default:
+        return 'info';
+    }
+  }
+
+  Future<void> _markRead(int id, int index) async {
+    await ApiService.markNotifikasiRead(id);
+    if (mounted) {
+      setState(() {
+        _notifs[index] = _notifs[index].copyWith(isRead: true);
+      });
     }
   }
 
@@ -72,10 +150,7 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
       return _buildError();
     }
     if (_notifs.isEmpty) {
-      return _buildEmpty(
-        'Belum Ada Notifikasi',
-        'Informasi dan pengumuman dari Batim Gadai akan muncul di sini.',
-      );
+      return _buildEmpty();
     }
     return RefreshIndicator(
       onRefresh: _load,
@@ -83,7 +158,13 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         itemCount: _notifs.length,
-        itemBuilder: (_, i) => _NotifCard(item: _notifs[i]),
+        itemBuilder: (_, i) {
+          final n = _notifs[i];
+          return GestureDetector(
+            onTap: n.id != null && !n.isRead ? () => _markRead(n.id!, i) : null,
+            child: _NasabahNotifCard(notif: n),
+          );
+        },
       ),
     );
   }
@@ -136,7 +217,7 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
         ),
       );
 
-  Widget _buildEmpty(String title, String subtitle) => Center(
+  Widget _buildEmpty() => Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -154,56 +235,76 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            Text(title,
-                style: const TextStyle(
+            const Text('Belum Ada Notifikasi',
+                style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.black)),
             const SizedBox(height: 8),
-            Text(subtitle,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    color: Color(0xFF9E9E9E),
-                    height: 1.6)),
+            const Text(
+              'Notifikasi jatuh tempo, booking kunjungan, dan info terbaru akan muncul di sini.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 12,
+                  color: Color(0xFF9E9E9E),
+                  height: 1.6),
+            ),
           ]),
         ),
       );
 }
 
-// Shared card — dipakai juga oleh notifikasi_nasabah_screen
-class _NotifCard extends StatelessWidget {
-  final Map<String, dynamic> item;
-  const _NotifCard({required this.item});
+class _NasabahNotif {
+  final String title, body, tipe, sub;
+  final bool isRead;
+  final int? id;
+
+  const _NasabahNotif({
+    required this.title,
+    required this.body,
+    required this.tipe,
+    required this.sub,
+    required this.isRead,
+    this.id,
+  });
+
+  _NasabahNotif copyWith({bool? isRead}) => _NasabahNotif(
+        title: title,
+        body: body,
+        tipe: tipe,
+        sub: sub,
+        isRead: isRead ?? this.isRead,
+        id: id,
+      );
+}
+
+class _NasabahNotifCard extends StatelessWidget {
+  final _NasabahNotif notif;
+  const _NasabahNotifCard({required this.notif});
 
   @override
   Widget build(BuildContext context) {
-    final tipe = item['tipe_notif'] as String? ?? 'info';
-    final isRead = item['is_read'] as bool? ?? false;
-
     final Color iconBg;
     final Color iconColor;
     final Color borderColor;
     final IconData icon;
 
-    switch (tipe) {
+    switch (notif.tipe) {
       case 'danger':
-      case 'jatuh_tempo' when (item['_sisa'] as int? ?? 1) <= 0:
         iconBg = const Color(0xFFFEE2E2);
         iconColor = const Color(0xFFDC2626);
         borderColor = const Color(0xFFFCA5A5);
         icon = Icons.warning_amber_rounded;
         break;
       case 'warning':
-      case 'jatuh_tempo':
         iconBg = const Color(0xFFFEF3C7);
         iconColor = const Color(0xFFD97706);
         borderColor = const Color(0xFFFCD34D);
         icon = Icons.access_time_rounded;
         break;
-      case 'booking_kunjungan':
+      case 'booking':
         iconBg = AppColors.primarySurface;
         iconColor = AppColors.primary;
         borderColor = const Color(0xFFB6D96C);
@@ -220,7 +321,7 @@ class _NotifCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isRead ? Colors.white : const Color(0xFFF8FFF4),
+        color: notif.isRead ? Colors.white : const Color(0xFFF8FFF4),
         borderRadius: BorderRadius.circular(14),
         border: Border(left: BorderSide(color: borderColor, width: 4)),
         boxShadow: const [
@@ -242,14 +343,14 @@ class _NotifCard extends StatelessWidget {
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Expanded(
-                child: Text(item['judul'] as String? ?? '',
+                child: Text(notif.title,
                     style: const TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: Colors.black)),
               ),
-              if (!isRead)
+              if (!notif.isRead)
                 Container(
                   width: 8,
                   height: 8,
@@ -258,15 +359,15 @@ class _NotifCard extends StatelessWidget {
                 ),
             ]),
             const SizedBox(height: 4),
-            Text(item['isi'] as String? ?? '',
+            Text(notif.body,
                 style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 11,
                     color: Color(0xFF555555),
                     height: 1.5)),
-            if ((item['created_at'] as String?)?.isNotEmpty == true) ...[
+            if (notif.sub.isNotEmpty) ...[
               const SizedBox(height: 6),
-              Text(item['created_at'] as String,
+              Text(notif.sub,
                   style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 10,
