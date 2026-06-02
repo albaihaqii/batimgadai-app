@@ -44,8 +44,26 @@ class StorageService {
   static Future<void> setIsNasabah(bool val) async =>
       (await _prefs).setBool(AppConstants.keyIsNasabah, val);
 
+  // isNasabah — nama lama, tetap ada supaya tidak break existing code
   static Future<bool> isNasabah() async =>
       (await _prefs).getBool(AppConstants.keyIsNasabah) ?? false;
+
+  // getIsNasabah — alias konsisten dengan naming convention get
+  static Future<bool> getIsNasabah() async =>
+      (await _prefs).getBool(AppConstants.keyIsNasabah) ?? false;
+
+  // FCM Token
+  static Future<void> saveFcmToken(String? token) async {
+    final p = await _prefs;
+    if (token == null) {
+      p.remove('fcm_token');
+    } else {
+      p.setString('fcm_token', token);
+    }
+  }
+
+  static Future<String?> getFcmToken() async =>
+      (await _prefs).getString('fcm_token');
 
   // Hapus Akun
   static Future<void> clearAll() async => (await _prefs).clear();
