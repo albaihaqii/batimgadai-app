@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "41527308765",
+    "project_id": "batimgadai-6ad08",
+    "storage_bucket": "batimgadai-6ad08.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:41527308765:android:bae6f5b358b45caf4a8634",
+        "android_client_info": {
+          "package_name": "com.batimgadai.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDqGBYIr1tCD5sKWgqyTNS2EVdXXWuvoOA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
