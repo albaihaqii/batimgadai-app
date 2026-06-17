@@ -59,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
             : PinjamanScreen(key: _pinjamanKey, isNasabah: false),
         const SimulasiScreen(),
         _isNasabah
-            ? AkunNasabahScreen(key: _akunNasabahKey)
+            ? AkunNasabahScreen(key: _akunNasabahKey, onTabSwitch: _onNavTap)
             : const AkunScreen(),
       ];
 

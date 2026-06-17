@@ -18,8 +18,8 @@ class _Step1WidgetState extends State<Step1Widget> {
   final _namaCtrl = TextEditingController();
 
   static const _dark = Color(0xFF1F5C3A);
-  static const _border = Color(0xFFE5E7EB);
-  static const _hint = Color(0xFFBBBBBB);
+  static const _border = Color(0xFFE0E0E0);
+  static const _hint = Color(0xFF999999);
 
   @override
   void initState() {
@@ -61,10 +61,9 @@ class _Step1WidgetState extends State<Step1Widget> {
       _hargaInt >= 100000 &&
       _namaCtrl.text.trim().isNotEmpty;
 
-  // Sama dengan phone_input: border radius 12, border Color(0xFFE5E7EB)
   OutlineInputBorder _ob(Color c) => OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: c));
+      borderRadius: BorderRadius.circular(10),
+      borderSide: BorderSide(color: c, width: 1.5));
 
   @override
   Widget build(BuildContext context) {
@@ -72,10 +71,8 @@ class _Step1WidgetState extends State<Step1Widget> {
       behavior: HitTestBehavior.translucent,
       onTap: () => FocusScope.of(context).unfocus(),
       child: SingleChildScrollView(
-        // padding top 16 — langsung mepet header, tidak ada space kosong
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // ── Kategori ───────────────────────────────────────────
           _Lbl('Kategori'),
           const SizedBox(height: 8),
           _KatDropdown(
@@ -91,23 +88,22 @@ class _Step1WidgetState extends State<Step1Widget> {
           ),
           const SizedBox(height: 16),
 
-          // ── Harga Pasar ────────────────────────────────────────
           _Lbl('Harga Pasar'),
           const SizedBox(height: 8),
           Container(
-            height: 52,
+            height: 50,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _border),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _border, width: 1.5),
             ),
             child: Row(children: [
               const Padding(
-                padding: EdgeInsets.only(left: 14, right: 4),
-                child: Text('Rp.',
+                padding: EdgeInsets.only(left: 14, right: 2),
+                child: Text('Rp',
                     style: TextStyle(
                         fontFamily: 'Poppins',
-                        fontSize: 14,
+                        fontSize: 13.5,
                         fontWeight: FontWeight.w500,
                         color: Color(0xFF555555))),
               ),
@@ -118,13 +114,13 @@ class _Step1WidgetState extends State<Step1Widget> {
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   style: const TextStyle(
                       fontFamily: 'Poppins',
-                      fontSize: 14,
+                      fontSize: 13.5,
                       fontWeight: FontWeight.w500,
                       color: Color(0xFF1A1A1A)),
                   decoration: const InputDecoration(
                     hintText: '0',
                     hintStyle: TextStyle(
-                        fontFamily: 'Poppins', fontSize: 14, color: _hint),
+                        fontFamily: 'Poppins', fontSize: 13.5, color: _hint),
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
@@ -138,18 +134,19 @@ class _Step1WidgetState extends State<Step1Widget> {
           ),
           const SizedBox(height: 16),
 
-          // ── Nama Barang ────────────────────────────────────────
           _Lbl('Nama Barang'),
           const SizedBox(height: 8),
           TextField(
             controller: _namaCtrl,
             onChanged: (_) => setState(() {}),
             style: const TextStyle(
-                fontFamily: 'Poppins', fontSize: 14, color: Color(0xFF1A1A1A)),
+                fontFamily: 'Poppins',
+                fontSize: 13.5,
+                color: Color(0xFF1A1A1A)),
             decoration: InputDecoration(
               hintText: 'Masukkan nama barang Anda',
               hintStyle: const TextStyle(
-                  fontFamily: 'Poppins', fontSize: 14, color: _hint),
+                  fontFamily: 'Poppins', fontSize: 13.5, color: _hint),
               filled: true,
               fillColor: Colors.white,
               contentPadding:
@@ -157,13 +154,10 @@ class _Step1WidgetState extends State<Step1Widget> {
               border: _ob(_border),
               enabledBorder: _ob(_border),
               focusedBorder: _ob(_dark),
-              suffixIcon: const Icon(Icons.chevron_right_rounded,
-                  color: Color(0xFFCCCCCC), size: 20),
             ),
           ),
           const SizedBox(height: 24),
 
-          // ── Button — pakai AppButton style (radius 14) ─────────
           _AppBtn(
               label: 'Lanjut  →',
               enabled: _valid,
@@ -177,13 +171,11 @@ class _Step1WidgetState extends State<Step1Widget> {
   }
 }
 
-// ── KV option ─────────────────────────────────────────────────────────────────
 class _KO {
   final String k, v;
   const _KO(this.k, this.v);
 }
 
-// ── Kategori overlay dropdown ─────────────────────────────────────────────────
 class _KatDropdown extends StatefulWidget {
   final String hint;
   final String? selected;
@@ -207,7 +199,7 @@ class _KatDropdownState extends State<_KatDropdown>
   bool _open = false;
 
   static const _dark = Color(0xFF1F5C3A);
-  static const _border = Color(0xFFE5E7EB);
+  static const _border = Color(0xFFE0E0E0);
   static const _sel = Color(0xFFDCE8CF);
 
   @override
@@ -255,7 +247,7 @@ class _KatDropdownState extends State<_KatDropdown>
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: _dark, width: 1.5),
                         boxShadow: [
                           BoxShadow(
@@ -265,7 +257,7 @@ class _KatDropdownState extends State<_KatDropdown>
                         ],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                         child: ListView.builder(
                           shrinkWrap: true,
                           padding: EdgeInsets.zero,
@@ -282,7 +274,7 @@ class _KatDropdownState extends State<_KatDropdown>
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 13),
+                                    horizontal: 14, vertical: 11),
                                 decoration: BoxDecoration(
                                   color: s ? _sel : Colors.white,
                                   border: i < widget.items.length - 1
@@ -294,7 +286,7 @@ class _KatDropdownState extends State<_KatDropdown>
                                 child: Text(o.v,
                                     style: TextStyle(
                                         fontFamily: 'Poppins',
-                                        fontSize: 14,
+                                        fontSize: 13.5,
                                         fontWeight: s
                                             ? FontWeight.w600
                                             : FontWeight.w400,
@@ -335,31 +327,22 @@ class _KatDropdownState extends State<_KatDropdown>
       onTap: _toggle,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        height: 52,
+        height: 50,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _open ? _dark : const Color(0xFFE5E7EB)),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: _open ? _dark : _border, width: 1.5),
         ),
         child: Row(children: [
-          Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                  color: const Color(0xFFF0F0F0),
-                  borderRadius: BorderRadius.circular(6)),
-              child: const Icon(Icons.category_outlined,
-                  size: 14, color: Color(0xFFAAAAAA))),
-          const SizedBox(width: 10),
           Expanded(
               child: Text(widget.selected ?? widget.hint,
                   style: TextStyle(
                       fontFamily: 'Poppins',
-                      fontSize: 14,
+                      fontSize: 13.5,
                       color: widget.selected != null
                           ? const Color(0xFF1A1A1A)
-                          : const Color(0xFFBBBBBB)))),
+                          : const Color(0xFF999999)))),
           RotationTransition(
               turns: _arrow,
               child: const Icon(Icons.keyboard_arrow_down_rounded,
@@ -370,7 +353,6 @@ class _KatDropdownState extends State<_KatDropdown>
   }
 }
 
-// ── Shared label ──────────────────────────────────────────────────────────────
 class _Lbl extends StatelessWidget {
   final String t;
   const _Lbl(this.t);
@@ -378,12 +360,11 @@ class _Lbl extends StatelessWidget {
   Widget build(BuildContext context) => Text(t,
       style: const TextStyle(
           fontFamily: 'Poppins',
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: Color(0xFF333333)));
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF1A1A1A)));
 }
 
-// ── AppButton style (radius 14, konsisten dengan phone_input) ─────────────────
 class _AppBtn extends StatelessWidget {
   final String label;
   final bool enabled;
@@ -403,7 +384,7 @@ class _AppBtn extends StatelessWidget {
             elevation: 0,
             shadowColor: Colors.transparent,
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
           child: Text(label,
               style: const TextStyle(
