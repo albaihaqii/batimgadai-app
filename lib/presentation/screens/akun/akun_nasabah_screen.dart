@@ -16,7 +16,8 @@ import 'data_pribadi_screen.dart';
 import 'ganti_pin_lama_screen.dart';
 
 class AkunNasabahScreen extends ConsumerStatefulWidget {
-  const AkunNasabahScreen({super.key});
+  final Function(int)? onTabSwitch;
+  const AkunNasabahScreen({super.key, this.onTabSwitch});
 
   @override
   ConsumerState<AkunNasabahScreen> createState() => AkunNasabahScreenState();
@@ -72,11 +73,10 @@ class AkunNasabahScreenState extends ConsumerState<AkunNasabahScreen> {
         break;
 
       case 'Pinjaman Aktif Saya':
-        Navigator.popUntil(context, (route) => route.isFirst);
+        widget.onTabSwitch?.call(1);
         break;
 
       case 'Riwayat Pembayaran':
-        // Ambil noCif dari provider dulu, fallback ke storage
         final nasabah = ref.read(nasabahProvider);
         String noCif = nasabah.noCif ?? '';
         if (noCif.isEmpty) {
@@ -169,35 +169,52 @@ class AkunNasabahScreenState extends ConsumerState<AkunNasabahScreen> {
       ),
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            SliverToBoxAdapter(child: _buildHeader(context, nasabah)),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionLabel('PROFIL'),
-                    const SizedBox(height: 8),
-                    _buildMenuGroup(context, _menuProfil),
-                    const SizedBox(height: 16),
-                    _sectionLabel('TRANSAKSI'),
-                    const SizedBox(height: 8),
-                    _buildMenuGroup(context, _menuTransaksi),
-                    const SizedBox(height: 16),
-                    _sectionLabel('KEAMANAN'),
-                    const SizedBox(height: 8),
-                    _buildMenuGroup(context, _menuKeamanan),
-                    const SizedBox(height: 16),
-                    _sectionLabel('INFORMASI'),
-                    const SizedBox(height: 8),
-                    _buildMenuGroup(context, _menuInformasi),
-                    const SizedBox(height: 16),
-                    _buildLogoutButton(),
-                    const SizedBox(height: 16),
-                  ],
+        body: Column(
+          children: [
+            // ── FIXED: Header hijau + banner mengambang di garis bawah ──
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _buildHeader(nasabah),
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: -26,
+                  child: _buildBanner(),
+                ),
+              ],
+            ),
+            // Ruang untuk setengah bagian bawah banner yang menonjol
+            const SizedBox(height: 26),
+            // ── SCROLLABLE: Menu Sections (clips di batas atas) ─────────
+            Expanded(
+              child: ClipRect(
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionLabel('PROFIL'),
+                      const SizedBox(height: 8),
+                      _buildMenuGroup(context, _menuProfil),
+                      const SizedBox(height: 16),
+                      _sectionLabel('TRANSAKSI'),
+                      const SizedBox(height: 8),
+                      _buildMenuGroup(context, _menuTransaksi),
+                      const SizedBox(height: 16),
+                      _sectionLabel('KEAMANAN'),
+                      const SizedBox(height: 8),
+                      _buildMenuGroup(context, _menuKeamanan),
+                      const SizedBox(height: 16),
+                      _sectionLabel('INFORMASI'),
+                      const SizedBox(height: 8),
+                      _buildMenuGroup(context, _menuInformasi),
+                      const SizedBox(height: 16),
+                      _buildLogoutButton(),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -207,168 +224,159 @@ class AkunNasabahScreenState extends ConsumerState<AkunNasabahScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, NasabahState nasabah) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          width: double.infinity,
-          color: const Color(0xFFB6D96C),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 52),
-              child: Column(
-                children: [
-                  const SizedBox(
-                    height: 36,
-                    child: Center(
-                      child: Text(
-                        'Akun',
-                        style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1F5C3A)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    width: 84,
-                    height: 84,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border:
-                          Border.all(color: const Color(0xFFEAF3E1), width: 4),
-                    ),
-                    child: Center(
-                      child: SvgPicture.asset(
-                        'assets/icons/user-bold.svg',
-                        width: 38,
-                        height: 38,
-                        colorFilter: const ColorFilter.mode(
-                            Color(0xFF1F5C3A), BlendMode.srcIn),
-                        errorBuilder: (_, __, ___) => const Icon(Icons.person,
-                            size: 38, color: Color(0xFF1F5C3A)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    nasabah.nama ?? 'Nasabah',
-                    style: const TextStyle(
+  Widget _buildHeader(NasabahState nasabah) {
+    return Container(
+      width: double.infinity,
+      color: const Color(0xFFB6D96C),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 52),
+          child: Column(
+            children: [
+              const SizedBox(
+                height: 36,
+                child: Center(
+                  child: Text(
+                    'Akun',
+                    style: TextStyle(
                         fontFamily: 'Poppins',
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black),
+                        color: Color(0xFF1F5C3A)),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    nasabah.noCif ?? '',
-                    style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 12,
-                        color: Color(0xFF555555)),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD9EDB3),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SvgPicture.asset(
-                          'assets/icons/verified.svg',
-                          width: 13,
-                          height: 13,
-                          colorFilter: const ColorFilter.mode(
-                              Color(0xFF1F5C3A), BlendMode.srcIn),
-                          errorBuilder: (_, __, ___) => const Icon(
-                              Icons.verified,
-                              size: 13,
-                              color: Color(0xFF1F5C3A)),
-                        ),
-                        const SizedBox(width: 5),
-                        const Text(
-                          'Nasabah Terverifikasi',
-                          style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF1F5C3A)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(height: 16),
+              Container(
+                width: 84,
+                height: 84,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border:
+                      Border.all(color: const Color(0xFFEAF3E1), width: 4),
+                ),
+                child: Center(
+                  child: SvgPicture.asset(
+                    'assets/icons/user-bold.svg',
+                    width: 38,
+                    height: 38,
+                    colorFilter: const ColorFilter.mode(
+                        Color(0xFF1F5C3A), BlendMode.srcIn),
+                    errorBuilder: (_, __, ___) => const Icon(Icons.person,
+                        size: 38, color: Color(0xFF1F5C3A)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                nasabah.nama ?? 'Nasabah',
+                style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                nasabah.noCif ?? '',
+                style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    color: Color(0xFF555555)),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD9EDB3),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SvgPicture.asset(
+                      'assets/icons/verified.svg',
+                      width: 13,
+                      height: 13,
+                      colorFilter: const ColorFilter.mode(
+                          Color(0xFF1F5C3A), BlendMode.srcIn),
+                      errorBuilder: (_, __, ___) => const Icon(
+                          Icons.verified,
+                          size: 13,
+                          color: Color(0xFF1F5C3A)),
+                    ),
+                    const SizedBox(width: 5),
+                    const Text(
+                      'Nasabah Terverifikasi',
+                      style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF1F5C3A)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
-        // Banner Pinjaman Aktif
-        Positioned(
-          left: 16,
-          right: 16,
-          bottom: -26,
-          child: GestureDetector(
-            onTap: () => Navigator.popUntil(context, (r) => r.isFirst),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1F5C3A),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
+      ),
+    );
+  }
+
+  Widget _buildBanner() {
+    return GestureDetector(
+      onTap: () => widget.onTabSwitch?.call(1),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1F5C3A),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            SvgPicture.asset(
+              'assets/icons/wallet-linier.svg',
+              width: 24,
+              height: 24,
+              colorFilter:
+                  const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              errorBuilder: (_, __, ___) => const Icon(
+                  Icons.account_balance_wallet_outlined,
+                  size: 24,
+                  color: Colors.white),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SvgPicture.asset(
-                    'assets/icons/wallet-linier.svg',
-                    width: 24,
-                    height: 24,
-                    colorFilter:
-                        const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-                    errorBuilder: (_, __, ___) => const Icon(
-                        Icons.account_balance_wallet_outlined,
-                        size: 24,
+                  Text(
+                    'Pinjaman Aktif Saya',
+                    style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                         color: Colors.white),
                   ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Pinjaman Aktif Saya',
-                          style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Pantau semua pinjaman Anda secara real-time.',
-                          style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 10,
-                              color: Colors.white70),
-                        ),
-                      ],
-                    ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Pantau semua pinjaman Anda secara realtime.',
+                    style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 10,
+                        color: Colors.white70),
                   ),
-                  const Icon(Icons.chevron_right,
-                      color: Colors.white, size: 20),
                 ],
               ),
             ),
-          ),
+            const Icon(Icons.chevron_right, color: Colors.white, size: 20),
+          ],
         ),
-      ],
+      ),
     );
   }
 

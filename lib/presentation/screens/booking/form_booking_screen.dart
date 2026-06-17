@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../../core/services/api_service.dart';
+import '../home/home_screen.dart';
 
 class FormBookingScreen extends StatefulWidget {
   final String noCif;
@@ -35,42 +36,19 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
 
   static const _bg = Color(0xFFB6D96C);
   static const _dark = Color(0xFF1F5C3A);
-  static const _border = Color(0xFFE5E7EB);
-  static const _soft = Color(0xFFF4F8EF);
-  static const _sel = Color(0xFFDCE8CF);
+  static const _border = Color(0xFFE0E0E0);
 
   static const _jamOpts = [
-    '08:00',
-    '09:00',
-    '10:00',
-    '11:00',
-    '13:00',
-    '14:00',
-    '15:00',
-    '16:00',
+    '08:00', '09:00', '10:00', '11:00',
+    '13:00', '14:00', '15:00', '16:00',
   ];
   static const _keperluanOpts = [
-    'Gadai Baru',
-    'Perpanjang Gadai',
-    'Tebus Barang',
-    'Cicil Tebus',
-    'Tanya Info Gadai',
-    'Konsultasi Taksiran',
-    'Lainnya',
+    'Gadai Baru', 'Perpanjang Gadai', 'Tebus Barang',
+    'Cicil Tebus', 'Tanya Info Gadai', 'Konsultasi Taksiran', 'Lainnya',
   ];
   static const _months = [
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
-    'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember',
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
   ];
 
   @override
@@ -88,7 +66,7 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
   Future<void> _loadCabang() async {
     try {
       final data = await ApiService.getCabang();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _cabangList = data
               .map<Map<String, dynamic>>(
@@ -96,6 +74,7 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
               .toList();
           _loadingCabang = false;
         });
+      }
     } catch (_) {
       if (mounted) setState(() => _loadingCabang = false);
     }
@@ -140,11 +119,12 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
       });
       if (mounted) _showSuccess();
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _submitting = false;
           _error = 'Gagal mengajukan booking. Coba lagi.';
         });
+      }
     }
   }
 
@@ -154,9 +134,12 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
         enableDrag: false,
         backgroundColor: Colors.transparent,
         builder: (_) => _SuccessSheet(onKembali: () {
-          Navigator.pop(context);
-          Navigator.pop(context);
-          Navigator.pop(context);
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const HomeScreen(isNasabah: true)),
+            (route) => false,
+          );
         }),
       );
 
@@ -174,8 +157,8 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
   }
 
   OutlineInputBorder _ob(Color c) => OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: c));
+      borderRadius: BorderRadius.circular(10),
+      borderSide: BorderSide(color: c, width: 1.5));
 
   @override
   Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
@@ -184,7 +167,7 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
         child: Scaffold(
           backgroundColor: Colors.white,
           body: Column(children: [
-            // ── Header — konsisten dengan SyaratKetentuan (AppBar style) ──
+            // ── Header ────────────────────────────────────────────
             Container(
               color: _bg,
               child: SafeArea(
@@ -205,8 +188,8 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 fontFamily: 'Poppins',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
                                 color: _dark))),
                     const SizedBox(width: 52),
                   ]),
@@ -219,21 +202,12 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
                 behavior: HitTestBehavior.translucent,
                 onTap: () => FocusScope.of(context).unfocus(),
                 child: SingleChildScrollView(
-                  // top 16 — langsung mepet header
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Simulasi summary
-                        if (widget.hasilSimulasi != null) ...[
-                          _SimSummary(
-                              hasil: widget.hasilSimulasi!,
-                              kategori: widget.kategori ?? '-'),
-                          const SizedBox(height: 16),
-                        ],
-
                         // ── Cabang ────────────────────────────────────────
-                        _FL('Pilih Cabang Tujuan'),
+                        const _FL('Pilih Cabang Tujuan'),
                         const SizedBox(height: 8),
                         _loadingCabang
                             ? const Center(
@@ -252,27 +226,29 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
                                       .cast<Map<String, dynamic>>()
                                       .firstWhere((c) => c['nama'] == nama,
                                           orElse: () => <String, dynamic>{});
-                                  if (f.isNotEmpty)
+                                  if (f.isNotEmpty) {
                                     setState(() {
                                       _cabangId = f['id'] as int;
                                       _cabangNama = nama;
                                     });
+                                  }
                                 },
                               ),
                         const SizedBox(height: 16),
 
                         // ── Tanggal ───────────────────────────────────────
-                        _FL('Tanggal Kunjungan'),
+                        const _FL('Tanggal Kunjungan'),
                         const SizedBox(height: 8),
                         GestureDetector(
                           onTap: _openDatePicker,
                           child: Container(
-                            height: 52,
+                            height: 50,
                             padding: const EdgeInsets.symmetric(horizontal: 14),
                             decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: _border)),
+                                borderRadius: BorderRadius.circular(10),
+                                border:
+                                    Border.all(color: _border, width: 1.5)),
                             child: Row(children: [
                               Expanded(
                                   child: Text(
@@ -281,20 +257,20 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
                                     : 'Pilih tanggal kunjungan',
                                 style: TextStyle(
                                     fontFamily: 'Poppins',
-                                    fontSize: 14,
+                                    fontSize: 13.5,
                                     color: _tgl != null
                                         ? const Color(0xFF1A1A1A)
-                                        : const Color(0xFFBBBBBB)),
+                                        : const Color(0xFF999999)),
                               )),
                               const Icon(Icons.calendar_today_outlined,
-                                  size: 17, color: Color(0xFFBBBBBB)),
+                                  size: 17, color: Color(0xFF999999)),
                             ]),
                           ),
                         ),
                         const SizedBox(height: 16),
 
-                        // ── Jam Kunjungan — label langsung mepet grid ─────
-                        _FL('Jam Kunjungan'),
+                        // ── Jam Kunjungan ─────────────────────────────────
+                        const _FL('Jam Kunjungan'),
                         const SizedBox(height: 8),
                         GridView.builder(
                           shrinkWrap: true,
@@ -317,9 +293,9 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: sel ? _bg : Colors.white,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border:
-                                      Border.all(color: sel ? _bg : _border),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                      color: sel ? _bg : _border, width: 1.5),
                                 ),
                                 child: Text(jam,
                                     style: TextStyle(
@@ -327,7 +303,7 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
                                         fontSize: 13,
                                         fontWeight: sel
                                             ? FontWeight.w700
-                                            : FontWeight.w500,
+                                            : FontWeight.w600,
                                         color: sel
                                             ? _dark
                                             : const Color(0xFF1A1A1A))),
@@ -338,7 +314,7 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
                         const SizedBox(height: 16),
 
                         // ── Keperluan ─────────────────────────────────────
-                        _FL('Keperluan'),
+                        const _FL('Keperluan'),
                         const SizedBox(height: 8),
                         _StrDropdown(
                           hint: 'Pilih keperluan kunjungan',
@@ -349,20 +325,20 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
                         const SizedBox(height: 16),
 
                         // ── Catatan ───────────────────────────────────────
-                        _FL('Catatan'),
+                        const _FL('Catatan'),
                         const SizedBox(height: 8),
                         TextField(
                           controller: _catatanCtrl,
                           maxLines: 3,
                           style: const TextStyle(
-                              fontFamily: 'Poppins', fontSize: 14),
+                              fontFamily: 'Poppins', fontSize: 13.5),
                           decoration: InputDecoration(
                             hintText:
                                 'Tambahkan catatan untuk petugas (Opsional)',
                             hintStyle: const TextStyle(
                                 fontFamily: 'Poppins',
-                                fontSize: 14,
-                                color: Color(0xFFBBBBBB)),
+                                fontSize: 13,
+                                color: Color(0xFF999999)),
                             filled: true,
                             fillColor: Colors.white,
                             contentPadding: const EdgeInsets.all(14),
@@ -379,9 +355,9 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                                 color: const Color(0xFFFEE2E2),
-                                borderRadius: BorderRadius.circular(12),
-                                border:
-                                    Border.all(color: const Color(0xFFFCA5A5))),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                    color: const Color(0xFFFCA5A5))),
                             child: Row(children: [
                               const Icon(Icons.error_outline,
                                   color: Color(0xFFDC2626), size: 16),
@@ -411,7 +387,7 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
                               elevation: 0,
                               shadowColor: Colors.transparent,
                               shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14)),
+                                  borderRadius: BorderRadius.circular(10)),
                             ),
                             child: _submitting
                                 ? const SizedBox(
@@ -439,33 +415,37 @@ class _FormBookingScreenState extends State<FormBookingScreen> {
 class _SuccessSheet extends StatelessWidget {
   final VoidCallback onKembali;
   const _SuccessSheet({required this.onKembali});
+
   @override
   Widget build(BuildContext context) => Container(
         decoration: const BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        padding: const EdgeInsets.fromLTRB(22, 10, 22, 32),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
-              width: 36,
+              width: 40,
               height: 4,
               decoration: BoxDecoration(
                   color: const Color(0xFFDDDDDD),
                   borderRadius: BorderRadius.circular(2))),
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
           Container(
-              width: 64,
-              height: 64,
-              decoration: const BoxDecoration(
-                  color: Color(0xFFF4F8EF), shape: BoxShape.circle),
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                  color: const Color(0xFFF4F8EF),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: const Color(0xFFDCE8CF), width: 2)),
               child: const Icon(Icons.check_rounded,
-                  color: Color(0xFF1F5C3A), size: 32)),
+                  color: Color(0xFF1F5C3A), size: 36)),
           const SizedBox(height: 16),
           const Text('Booking Berhasil',
               style: TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 18,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   color: Colors.black)),
           const SizedBox(height: 8),
           const Text(
@@ -474,8 +454,8 @@ class _SuccessSheet extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
                 fontFamily: 'Poppins',
-                fontSize: 12,
-                color: Color(0xFF757575),
+                fontSize: 13,
+                color: Color(0xFF555555),
                 height: 1.6),
           ),
           const SizedBox(height: 24),
@@ -489,7 +469,7 @@ class _SuccessSheet extends StatelessWidget {
                   foregroundColor: const Color(0xFF1F5C3A),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14))),
+                      borderRadius: BorderRadius.circular(10))),
               child: const Text('Kembali ke Beranda',
                   style: TextStyle(
                       fontFamily: 'Poppins',
@@ -525,7 +505,7 @@ class _StrDropdownState extends State<_StrDropdown>
   bool _open = false;
 
   static const _dark = Color(0xFF1F5C3A);
-  static const _border = Color(0xFFE5E7EB);
+  static const _border = Color(0xFFE0E0E0);
   static const _sel = Color(0xFFDCE8CF);
 
   @override
@@ -576,17 +556,17 @@ class _StrDropdownState extends State<_StrDropdown>
                       constraints: BoxConstraints(maxHeight: mh),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: _dark, width: 1.5),
                         boxShadow: [
                           BoxShadow(
-                              color: Colors.black.withOpacity(.09),
+                              color: Colors.black.withValues(alpha: 0.09),
                               blurRadius: 12,
                               offset: const Offset(0, 4))
                         ],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                         child: ListView.builder(
                           shrinkWrap: true,
                           padding: EdgeInsets.zero,
@@ -602,7 +582,7 @@ class _StrDropdownState extends State<_StrDropdown>
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 13),
+                                    horizontal: 14, vertical: 11),
                                 decoration: BoxDecoration(
                                   color: s ? _sel : Colors.white,
                                   border: i < widget.items.length - 1
@@ -614,7 +594,7 @@ class _StrDropdownState extends State<_StrDropdown>
                                 child: Text(item,
                                     style: TextStyle(
                                         fontFamily: 'Poppins',
-                                        fontSize: 14,
+                                        fontSize: 13.5,
                                         fontWeight: s
                                             ? FontWeight.w600
                                             : FontWeight.w400,
@@ -654,31 +634,22 @@ class _StrDropdownState extends State<_StrDropdown>
         onTap: _toggle,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
-          height: 52,
+          height: 50,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _open ? _dark : _border),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _open ? _dark : _border, width: 1.5),
           ),
           child: Row(children: [
-            Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                    color: const Color(0xFFF0F0F0),
-                    borderRadius: BorderRadius.circular(6)),
-                child: const Icon(Icons.location_on_outlined,
-                    size: 14, color: Color(0xFFAAAAAA))),
-            const SizedBox(width: 10),
             Expanded(
                 child: Text(widget.selected ?? widget.hint,
                     style: TextStyle(
                         fontFamily: 'Poppins',
-                        fontSize: 14,
+                        fontSize: 13.5,
                         color: widget.selected != null
                             ? const Color(0xFF1A1A1A)
-                            : const Color(0xFFBBBBBB)))),
+                            : const Color(0xFF999999)))),
             RotationTransition(
                 turns: _arrow,
                 child: const Icon(Icons.keyboard_arrow_down_rounded,
@@ -703,18 +674,8 @@ class _DateSheetState extends State<_DateSheet> {
 
   static const _days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
   static const _mons = [
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
-    'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember',
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
   ];
   static const _green = Color(0xFFB6D96C);
   static const _dark = Color(0xFF1F5C3A);
@@ -754,7 +715,7 @@ class _DateSheetState extends State<_DateSheet> {
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
-            width: 36,
+            width: 40,
             height: 4,
             decoration: BoxDecoration(
                 color: const Color(0xFFDDDDDD),
@@ -855,7 +816,7 @@ class _DateSheetState extends State<_DateSheet> {
                 disabledForegroundColor: const Color(0xFF263238),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14))),
+                    borderRadius: BorderRadius.circular(10))),
             child: const Text('Pilih Tanggal',
                 style: TextStyle(
                     fontFamily: 'Poppins',
@@ -876,62 +837,14 @@ class _Nb extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
         onTap: onTap,
         child: Container(
-            width: 28,
-            height: 28,
+            width: 30,
+            height: 30,
             decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFE5E7EB)),
+                border:
+                    Border.all(color: const Color(0xFFE0E0E0), width: 1.5),
                 borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, size: 17, color: const Color(0xFF1A1A1A))),
+            child: Icon(icon, size: 16, color: const Color(0xFF1A1A1A))),
       );
-}
-
-// ── Simulasi summary card ─────────────────────────────────────────────────────
-class _SimSummary extends StatelessWidget {
-  final Map<String, dynamic> hasil;
-  final String kategori;
-  const _SimSummary({required this.hasil, required this.kategori});
-  @override
-  Widget build(BuildContext context) {
-    final fmt =
-        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
-    final mn = (hasil['nilai_min'] as num?)?.toInt() ?? 0;
-    final mx = (hasil['nilai_max'] as num?)?.toInt() ?? 0;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-          color: const Color(0xFFF4F8EF),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFDCE8CF))),
-      child: Row(children: [
-        Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-                color: const Color(0xFFB6D96C),
-                borderRadius: BorderRadius.circular(10)),
-            child: const Icon(Icons.calculate_rounded,
-                color: Color(0xFF1F5C3A), size: 20)),
-        const SizedBox(width: 12),
-        Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(kategori,
-              style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1F5C3A))),
-          const SizedBox(height: 2),
-          Text('${fmt.format(mn)} — ${fmt.format(mx)}',
-              style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A1A1A))),
-        ])),
-      ]),
-    );
-  }
 }
 
 class _FL extends StatelessWidget {
@@ -941,7 +854,7 @@ class _FL extends StatelessWidget {
   Widget build(BuildContext context) => Text(t,
       style: const TextStyle(
           fontFamily: 'Poppins',
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: Color(0xFF333333)));
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF1A1A1A)));
 }

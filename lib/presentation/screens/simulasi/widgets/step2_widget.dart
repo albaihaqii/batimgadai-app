@@ -30,10 +30,8 @@ class _Step2WidgetState extends State<Step2Widget> {
   final Set<int> _kc = {};
 
   static const _dark = Color(0xFF1F5C3A);
-  static const _green = Color(0xFFB6D96C);
-  static const _border = Color(0xFFE5E7EB);
+  static const _border = Color(0xFFE0E0E0);
   static const _soft = Color(0xFFF4F8EF);
-  static const _sel = Color(0xFFDCE8CF);
 
   static const _kondisiOpts = [
     {'v': 'baik', 'label': 'Baik', 'emoji': '😊'},
@@ -46,11 +44,10 @@ class _Step2WidgetState extends State<Step2Widget> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      // top 16 — langsung mepet header
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // ── Kondisi Barang ─────────────────────────────────────
-        _SLbl('Kondisi Barang'),
+        const _SLbl('Kondisi Barang'),
         const SizedBox(height: 10),
         Row(
             children: List.generate(_kondisiOpts.length, (i) {
@@ -64,15 +61,15 @@ class _Step2WidgetState extends State<Step2Widget> {
                 onTap: () => setState(() => _kondisi = v),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
                     color: sel ? _soft : Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color: sel ? _dark : _border, width: sel ? 2 : 1),
+                        color: sel ? _dark : _border, width: sel ? 2 : 1.5),
                   ),
                   child: Column(children: [
-                    Text(o['emoji']!, style: const TextStyle(fontSize: 28)),
+                    Text(o['emoji']!, style: const TextStyle(fontSize: 26)),
                     const SizedBox(height: 6),
                     Text(o['label']!,
                         style: TextStyle(
@@ -90,7 +87,7 @@ class _Step2WidgetState extends State<Step2Widget> {
         // ── Kelengkapan ────────────────────────────────────────
         if (widget.kelengkapanList.isNotEmpty) ...[
           const SizedBox(height: 20),
-          _SLbl('Kelengkapan'),
+          const _SLbl('Kelengkapan'),
           const SizedBox(height: 10),
           Wrap(
               spacing: 8,
@@ -113,7 +110,7 @@ class _Step2WidgetState extends State<Step2Widget> {
         // ── Kecacatan ──────────────────────────────────────────
         if (widget.kecacatanList.isNotEmpty) ...[
           const SizedBox(height: 20),
-          _SLbl('Kecacatan'),
+          const _SLbl('Kecacatan'),
           const SizedBox(height: 10),
           Wrap(
               spacing: 8,
@@ -140,7 +137,7 @@ class _Step2WidgetState extends State<Step2Widget> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
                 color: const Color(0xFFFEE2E2),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: const Color(0xFFFCA5A5))),
             child: Row(children: [
               const Icon(Icons.error_outline,
@@ -176,9 +173,9 @@ class _Step2WidgetState extends State<Step2Widget> {
           child: OutlinedButton(
             onPressed: widget.loading ? null : widget.onBack,
             style: OutlinedButton.styleFrom(
-              side: BorderSide(color: _border),
+              side: const BorderSide(color: Color(0xFFE0E0E0), width: 1.5),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
+                  borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Kembali',
                 style: TextStyle(
@@ -205,21 +202,21 @@ class _Chip extends StatelessWidget {
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
           decoration: BoxDecoration(
             color: selected ? const Color(0xFFDCE8CF) : Colors.white,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
                 color: selected
                     ? const Color(0xFFDCE8CF)
-                    : const Color(0xFFE5E7EB),
+                    : const Color(0xFFE0E0E0),
                 width: 1.5),
           ),
           child: Text(label,
               style: TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 12,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   color: selected
                       ? const Color(0xFF1F5C3A)
                       : const Color(0xFF1A1A1A))),
@@ -234,9 +231,9 @@ class _SLbl extends StatelessWidget {
   Widget build(BuildContext context) => Text(t,
       style: const TextStyle(
           fontFamily: 'Poppins',
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: Color(0xFF333333)));
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF1A1A1A)));
 }
 
 class _AppBtn extends StatelessWidget {
@@ -263,7 +260,7 @@ class _AppBtn extends StatelessWidget {
             elevation: 0,
             shadowColor: Colors.transparent,
             shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
           child: loading
               ? const SizedBox(

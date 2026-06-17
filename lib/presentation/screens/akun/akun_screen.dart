@@ -84,26 +84,32 @@ class _AkunScreenState extends State<AkunScreen> {
       ),
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(child: _buildHeader(context)),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionLabel('KEAMANAN'),
-                    const SizedBox(height: 8),
-                    _buildMenuGroup(_menuKeamanan),
-                    const SizedBox(height: 16),
-                    _sectionLabel('INFORMASI'),
-                    const SizedBox(height: 8),
-                    _buildMenuGroup(_menuInformasi),
-                    const SizedBox(height: 16),
-                    _buildLogoutButton(),
-                    const SizedBox(height: 16),
-                  ],
+        body: Column(
+          children: [
+            // ── FIXED: Header hijau + banner mengambang di garis bawah ──
+            _buildHeader(context),
+            // Ruang untuk setengah bagian bawah banner yang menonjol
+            const SizedBox(height: 26),
+            // ── SCROLLABLE: Menu Sections (clips di batas atas) ─────────
+            Expanded(
+              child: ClipRect(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionLabel('KEAMANAN'),
+                      const SizedBox(height: 8),
+                      _buildMenuGroup(_menuKeamanan),
+                      const SizedBox(height: 16),
+                      _sectionLabel('INFORMASI'),
+                      const SizedBox(height: 8),
+                      _buildMenuGroup(_menuInformasi),
+                      const SizedBox(height: 16),
+                      _buildLogoutButton(),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
             ),
